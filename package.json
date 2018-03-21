@@ -1,0 +1,25 @@
+{
+  "name": "iotsec",
+  "version": "0.0.1",
+  "description": "an IOT security system using a Particle Photon and a Raspberry Pi",
+  "main": "web_server.js",
+  "dependencies": {
+    "arpscan": "^0.6.0",
+    "async": "^2.6.0",
+    "emailjs": "^2.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git repo here"
+  },
+  "keywords": [
+    "IOT",
+    "security"
+  ],
+  "author": "Timothy Baumgartner",
+  "license": "MIT"
+}
