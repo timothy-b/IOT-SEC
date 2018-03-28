@@ -1,72 +1,73 @@
 const arpscan = require("arpscan");
+const bunyan = require("bunyan");
 const email = require("emailjs");
 const http = require("http");
+const Config = require("./config.js");
 
-const whitelistedDevices = [
-	{
-		mac: "00:00:00:00:00:00",
-		name: "my phone"
-	}
-];
-
-const emailServerConfig = {
-	user: "user@mailservice.com", 
-	password: `your password here`, 
-	host: "smtp.mail.com", 
-	ssl: true
-};
-
-const emailRecipientConfig = {
-	text: "Test email2sms", 
-	from: "User Name <user@mailservice.com>", 
-	to: "5555555555@carrier.address.com",
-	ssl: true,
-	port: 465
-};
-
-const okResponseBody = `
-<!DOCTYPE "html">
-<html>
-	<head>
-		<title>Hello World Page</title>
-	</head>
-	<body>
-		Hello World!
-	</body>
-</html>
-`;
+var log = bunyan.createLogger({
+  name: 'IOTSEC',
+  streams: [
+    {
+      level: 'info',
+      stream: process.stdout	// log INFO and above to stdout
+    },
+    {
+      level: 'warn',
+      path: '/var/iotsec.log'	// log ERROR and above to a file
+    }
+  ]
+});
 
 const server = http.createServer(function(request, response) {
-	alertIfNotHome();
+	alertIfNotHome(request);
 
-	console.info(`method: ${request.method}`);
-	console.info(`url: ${request.url}`);
+	log.info(`method: ${request.method}`);
+	log.info(`url: ${request.url}`);
 
+	sendResponse(request, response);
+});
+
+const alertIfNotHome = async function(request) {
+	if (request.method != 'POST')
+		return;
+
+	const header = request.headers['authorization']||'',  // get the header
+			token = header.split(/\s+/).pop()||'',            // and the encoded auth token
+			auth = new Buffer(token, 'base64').toString(),    // convert from base64
+			parts = auth.split(/:/),                          // split on colon
+			username = parts[0],
+			password = parts[1];
+
+	if (username != Config.basicAuthentication.username || password != Config.basicAuthentication.password)
+		return;
+
+	const devices = getDevicesOnNetwork();
+	log.info(devices);
+
+	let = whitelistedDevicesDetected = [];
+	for (let d in devices)
+		if (Config.whitelistedDevices.map(w => w.mac).includes(devices[d].mac))
+			whitelistedDevicesDetected.push(devices[d]);
+
+	if (whitelistedDevicesDetected.length == 0) {
+		const connection = email.server.connect(Config.emailServer);
+		connection.send(Config.emailRecipient, function(err, message) { console.log(err || message); });
+	}
+}
+
+const sendResponse = async function(request, response) {
 	let body = "";
 	request.on("readable", function() {
 		body += request.read();
 	});
 
 	request.on("end", function() {
-		console.info(body);
+		log.info(body);
 	});
 
 	response.writeHead(200, {"Content-Type": "text/html"});
-	response.write(okResponseBody);
+	response.write(Config.okResponseBody);
 	response.end();
-});
-
-const alertIfNotHome = async function() {
-	const devices = getDevicesOnNetwork();
-	console.info(devices);
-
-	let = whitelistedDevicesDetected = [];
-	for (let d in devices)
-		if (whitelistedDevices.map(w => w.mac).includes(devices[d].mac))
-			whitelistedDevicesDetected.push(devices[d]);
-
-	if (whitelistedDevicesDetected.length == 0)
-		sendTextMessage();
 }
 
 const getDevicesOnNetwork = function() {
@@ -77,18 +78,13 @@ const getDevicesOnNetwork = function() {
 
 	return arpscan(function(err, data) {
 		if (err)
-			console.error(data);
+			log.error(data);
 
-		console.info(JSON.stringify(data));
+		log.info(JSON.stringify(data));
 
 		return data;
 	}, arpscanOptions);
 }
 
-const sendTextMessage = function() {
-	const connection = email.server.connect(emailServerConfig);
-	connection.send(emailRecipientConfig, function(err, message) { console.log(err || message); });
-}
-
 server.listen(80);
-console.info("Server is listening");
+log.info("Server is listening");
