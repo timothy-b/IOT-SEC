@@ -4,45 +4,40 @@ const email = require("emailjs");
 const http = require("http");
 const Config = require("./config.js");
 
-var log = bunyan.createLogger({
-  name: 'IOTSEC',
-  streams: [
-    {
-      level: 'info',
-      stream: process.stdout	// log INFO and above to stdout
-    },
-    {
-      level: 'warn',
-      path: '/var/iotsec.log'	// log ERROR and above to a file
-    }
-  ]
-});
+const c_log = bunyan.createLogger(Config.bunyan);
 
-const server = http.createServer(function(request, response) {
+const c_server = http.createServer(function(request, response) {
 	alertIfNotHome(request);
 
-	log.info(`method: ${request.method}`);
-	log.info(`url: ${request.url}`);
+	c_log.info({ method: request.method, url: request.url });
 
 	sendResponse(request, response);
-});
+})
+	.on('error', (error) => {
+		if (error.message.includes("EACCES"))
+			c_log.warn("EACCES error - permission denied. You must run the program as admin.")
 
-const alertIfNotHome = async function(request) {
+		c_log.error(error);
+	});
+
+async function alertIfNotHome(request) {
 	if (request.method != 'POST')
 		return;
 
-	const header = request.headers['authorization']||'',  // get the header
-			token = header.split(/\s+/).pop()||'',            // and the encoded auth token
-			auth = new Buffer(token, 'base64').toString(),    // convert from base64
-			parts = auth.split(/:/),                          // split on colon
-			username = parts[0],
-			password = parts[1];
+	if (Config.basicAuthentication.enabled) {
+		const header = request.headers['authorization']||'',  // get the header
+				token = header.split(/\s+/).pop()||'',            // and the encoded auth token
+				auth = new Buffer(token, 'base64').toString(),    // convert from base64
+				parts = auth.split(/:/),                          // split on colon
+				username = parts[0],
+				password = parts[1];
 
-	if (username != Config.basicAuthentication.username || password != Config.basicAuthentication.password)
-		return;
+		if (username != Config.basicAuthentication.username || password != Config.basicAuthentication.password)
+			return;
+	}
 
 	const devices = getDevicesOnNetwork();
-	log.info(devices);
+	c_log.info({ devicesOnNetwork: devices });
 
 	let = whitelistedDevicesDetected = [];
 	for (let d in devices)
@@ -55,14 +50,14 @@ const alertIfNotHome = async function(request) {
 	}
 }
 
-const sendResponse = async function(request, response) {
+async function sendResponse(request, response) {
 	let body = "";
 	request.on("readable", function() {
 		body += request.read();
 	});
 
 	request.on("end", function() {
-		log.info(body);
+		c_log.info(body);
 	});
 
 	response.writeHead(200, {"Content-Type": "text/html"});
@@ -70,7 +65,7 @@ const sendResponse = async function(request, response) {
 	response.end();
 }
 
-const getDevicesOnNetwork = function() {
+function getDevicesOnNetwork() {
 	const arpscanOptions = {
 		interface: "eth0",
 		sudo: true
@@ -78,13 +73,16 @@ const getDevicesOnNetwork = function() {
 
 	return arpscan(function(err, data) {
 		if (err)
-			log.error(data);
-
-		log.info(JSON.stringify(data));
+			c_log.error(data);
 
 		return data;
 	}, arpscanOptions);
 }
 
-server.listen(80);
-log.info("Server is listening");
+async function main() {
+	await c_server.listen(80);
+	if (c_server.listening)
+		c_log.info("Server is listening");
+}
+
+main();

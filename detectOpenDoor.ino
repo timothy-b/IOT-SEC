@@ -20,7 +20,7 @@ void loop() {
 
   if (doorOpen != sensorValue) {  // state change
     if (sensorValue)
-      Particle.publish("test", "the door has opened", 60, PRIVATE);
+      Particle.publish("doorOpened", "the door has opened", 60, PRIVATE);
 
     doorOpen = sensorValue;
   }
