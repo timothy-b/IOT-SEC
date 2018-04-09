@@ -1,7 +1,7 @@
 # Setup
 
 ## Prelude
-The fact that this project makes use of a Raspberry Pi and a Particle Photon is somewhat arbitrary - they're what I had on hand at the time, although they're both popular, inexpensive, well-supported, easy to use, entry-level devices. So they're decent choices nonetheless. If I were to build this project again, I might use a single Arduino device in order to bypass having to use Particle's third-party cloud services (though very user friendly), and reduce overall system complexity. Such an Arduino would only have to be able to make use of GPIO pins, perform ARP scans, and send HTTP requests. However, it may also be preferrable to separate concerns between devices; to use one sensor and one web server / device hub, as the beginnings of a hub-and-spoke IOT design pattern. 
+The fact that this project makes use of a Raspberry Pi and a Particle Photon is somewhat arbitrary - they're what I had on hand at the time, although they're both popular, inexpensive, well-supported, easy to use, entry-level devices. So they're decent choices nonetheless. If I were to build this project again, I might use a single Arduino device in order to bypass having to use Particle's third-party cloud services (though very user friendly), and reduce overall system complexity. Such an Arduino would only have to be able to make use of GPIO pins, perform ARP scans, and send HTTP requests. A single Raspberry Pi could do this. However, it may also be preferrable to separate concerns between devices; to use one sensor and one web server / device hub, as the beginnings of a hub-and-spoke IOT design pattern.
 
 ## Raspberry Pi
 First, [install](https://www.raspberrypi.org/documentation/installation/installing-images/README.md) your distro of choice. I used Raspbian since I'm familiar with Debian.
@@ -27,6 +27,8 @@ Finally, you can run `node tests/test-whatever.js` to run different tests and `n
 If you don't have basic working familiarity with your Photon, you should follow Particle's [Getting Started](https://docs.particle.io/guide/getting-started/start/photon/) guide first, at least to the point where you've walked through a few of their code examples.
 
 ### Wiring the circuit
+
+Wire according to the schematic provided. Note that the Hall Sensor requires a resistor between its input and output pins - I didn't notice this mentioned anywhere I looked online.
 
 ### Particle cloud configuration
 You'll need to set up a webhook for the Photon to send messages to the Raspberry Pi. The example configuration has basic HTTP authentication enabled by default, but you can disable it by flipping the `Config.basicAuthentication.enabled` flag to `false`. Basic HTTP authentication is easy to setup and use, so I wouldn't recommend disabling it.

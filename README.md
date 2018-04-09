@@ -6,5 +6,4 @@ A homebuilt security system using a Raspberry Pi and a Particle Photon.
 [Setup documentation](https://github.com/timothy-b/IOT-SEC/blob/master/docs/Setup.md)
 
 ## TODO:
-* Add circuit diagram
 * Add smoketest/status page
