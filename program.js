@@ -1,15 +1,14 @@
-const arpscan = require("arpscan");
-const bunyan = require("bunyan");
-const email = require("emailjs");
-const http = require("http");
+const Arpscan = require("arpscan");
+const Bunyan = require("bunyan");
 const Config = require("./config.js");
+const Email = require("emailjs");
+const Http = require("http");
+const Promise = require('bluebird');
 
-const c_log = bunyan.createLogger(Config.bunyan);
+const c_log = Bunyan.createLogger(Config.bunyan);
 
-const c_server = http.createServer(function(request, response) {
+const c_server = Http.createServer(function(request, response) {
 	alertIfNotHome(request);
-
-	c_log.info({ method: request.method, url: request.url });
 
 	sendResponse(request, response);
 })
@@ -17,7 +16,7 @@ const c_server = http.createServer(function(request, response) {
 		if (error.message.includes("EACCES"))
 			c_log.warn("EACCES error - permission denied. You must run the program as admin.")
 
-		c_log.error(error);
+		c_log.error(error, "server error");
 	});
 
 async function alertIfNotHome(request) {
@@ -25,10 +24,10 @@ async function alertIfNotHome(request) {
 		return;
 
 	if (Config.basicAuthentication.enabled) {
-		const header = request.headers['authorization']||'',  // get the header
-				token = header.split(/\s+/).pop()||'',            // and the encoded auth token
-				auth = new Buffer(token, 'base64').toString(),    // convert from base64
-				parts = auth.split(/:/),                          // split on colon
+		const header = request.headers['authorization'] || '',  // get the header
+				token = header.split(/\s+/).pop() || '',            // and the encoded auth token
+				auth = new Buffer(token, 'base64').toString(),      // convert from base64
+				parts = auth.split(/:/),                            // split on colon
 				username = parts[0],
 				password = parts[1];
 
@@ -36,8 +35,8 @@ async function alertIfNotHome(request) {
 			return;
 	}
 
-	const devices = getDevicesOnNetwork();
-	c_log.info({ devicesOnNetwork: devices });
+	const devices = await getDevicesOnNetworkAsync();
+	c_log.info({ devicesOnNetwork: devices }, "scanned network");
 
 	let = whitelistedDevicesDetected = [];
 	for (let d in devices)
@@ -45,8 +44,13 @@ async function alertIfNotHome(request) {
 			whitelistedDevicesDetected.push(devices[d]);
 
 	if (whitelistedDevicesDetected.length == 0) {
-		const connection = email.server.connect(Config.emailServer);
-		connection.send(Config.emailRecipient, function(err, message) { console.log(err || message); });
+		const connection = Email.server.connect(Config.emailServer);
+		connection.send(Config.emailRecipient, function(err, message) {
+			if (err) 
+				c_log.error(err, "error sending email");
+			else
+				c_log.info(message, "sending email");
+		});
 	}
 }
 
@@ -57,7 +61,7 @@ async function sendResponse(request, response) {
 	});
 
 	request.on("end", function() {
-		c_log.info(body);
+		c_log.info({ method: request.method, url: request.url, headers: request.headers, body: body }, "request received");
 	});
 
 	response.writeHead(200, {"Content-Type": "text/html"});
@@ -65,19 +69,15 @@ async function sendResponse(request, response) {
 	response.end();
 }
 
-function getDevicesOnNetwork() {
+function getDevicesOnNetwork(callback) {
 	const arpscanOptions = {
 		interface: "eth0",
 		sudo: true
 	};
-
-	return arpscan(function(err, data) {
-		if (err)
-			c_log.error(data);
-
-		return data;
-	}, arpscanOptions);
+	Arpscan(callback, arpscanOptions);
 }
+
+const getDevicesOnNetworkAsync = Promise.promisify(getDevicesOnNetwork);
 
 async function main() {
 	await c_server.listen(80);

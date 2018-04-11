@@ -6,6 +6,7 @@
   "dependencies": {
     "arpscan": "^0.6.0",
     "async": "^2.6.0",
+    "bluebird": "^3.5.1",
     "bunyan": "^1.8.12",
     "emailjs": "^2.0.0"
   },
