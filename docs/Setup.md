@@ -1,7 +1,7 @@
 # Setup
 
 ## Prelude
-The fact that this project makes use of a Raspberry Pi and a Particle Photon is somewhat arbitrary - they're what I had on hand at the time, although they're both popular, inexpensive, well-supported, easy to use, entry-level devices. So they're decent choices nonetheless. If I were to build this project again, I might use a single Arduino device in order to bypass having to use Particle's third-party cloud services (though very user friendly), and reduce overall system complexity. Such an Arduino would only have to be able to make use of GPIO pins, perform ARP scans, and send HTTP requests. A single Raspberry Pi could do this. However, it may also be preferrable to separate concerns between devices; to use one sensor and one web server / device hub, as the beginnings of a hub-and-spoke IOT design pattern.
+It's somewhat arbitrary that this project makes use of a Raspberry Pi and a Particle Photon - they're what I had on hand at the time, although they're both popular, inexpensive, well-supported, easy to use, entry-level devices, so they're decent choices nonetheless. If I were to build this project again, I might use a single Arduino device in order to bypass having to use Particle's third-party cloud services (though very user friendly), and reduce overall system complexity. Such an Arduino would only have to be able to make use of GPIO pins, perform ARP scans, and send HTTP requests. A single Raspberry Pi could do this. However, it may also be preferrable to separate concerns between devices; to use one sensor and one web server / device hub, as the beginnings of a hub-and-spoke IOT design pattern.
 
 ## Raspberry Pi
 First, [install](https://www.raspberrypi.org/documentation/installation/installing-images/README.md) your distro of choice. I used Raspbian since I'm familiar with Debian.
@@ -18,9 +18,26 @@ Next you'll need to install NPM and Node. Unfortunately, on the Raspberry Pi 1 t
 
 Next, you'll need to get my project files to your Pi. I don't have any releases or install scripts yet, so you can copy the files from Github, or just `apt-get install git` and `git clone https://github.com/timothy-b/IOT-SEC.git`.
 
-Next, make a copy of `exampleConfig.js` and name it `config.js`.
+Next, make a copy of `exampleConfig.js`, name it `config.js`, and fill in the appropriate values. 
 
-Finally, you can run `node tests/test-whatever.js` to run different tests and `node program.js` as admin to run the web server program.
+Next, you can run `node tests/test-whatever.js` to run different tests and `node program.js` as admin to run the web server program.
+
+Finally, install the program as a service with Systemd. Create a file `/etc/systemd/system/iotsec.service` with the following config:
+```
+[Unit]
+Description=IOT-SEC
+Documentation=github.com/timothy-b/iot-sec
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/usr/bin/node /home/pi/IOT-SEC/program.js
+
+[Install]
+WantedBy=multi-user.target
+```
+
+And then `sudo systemctl enable iotsec` and reboot!
 
 ## Particle Photon
 
