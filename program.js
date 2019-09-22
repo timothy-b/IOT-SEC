@@ -35,17 +35,33 @@ async function alertIfNotHome(request) {
 			return;
 	}
 
-	const devices = await getDevicesOnNetworkAsync();
-	c_log.info({ devicesOnNetwork: devices }, "scanned network");
+	const detectedDevices = await getDevicesOnNetworkAsync();
+	c_log.info({ detectedDevices }, "scanned network");
 
-	let = whitelistedDevicesDetected = [];
-	for (let d in devices)
-		if (Config.whitelistedDevices.map(w => w.mac).includes(devices[d].mac))
-			whitelistedDevicesDetected.push(devices[d]);
-
-	if (whitelistedDevicesDetected.length == 0) {
+	const myPortableDevices = detectedDevices.filter(
+		d => Config.whitelistedDevices.map(w => w.mac).includes(d.mac));
+	
+	if (myPortableDevices.length == 0) {
 		const connection = Email.server.connect(Config.emailServer);
 		connection.send(Config.emailRecipient, function(err, message) {
+			if (err) 
+				c_log.error(err, "error sending email");
+			else
+				c_log.info(message, "sending email");
+		});
+	}
+
+	const knownPortableDevices = detectDevices.filter(
+		d => Config.knownDevices.map(kd => kd.mac).includes(d.mac));
+
+	if (knownPortableDevices.length == 0) {
+		const connection = Email.server.connect(Config.emailServer);
+		const newEmailRecipient = {
+			...Config.emailRecipient,
+			text: `${knownPortableDevices.join(', ')} is home.`
+		}
+
+		connection.send(newEmailRecipient, function(err, message) {
 			if (err) 
 				c_log.error(err, "error sending email");
 			else
@@ -69,7 +85,7 @@ async function sendResponse(request, response) {
 	response.end();
 }
 
-function getDevicesOnNetwork(callback) {
+function detectDevices(callback) {
 	const arpscanOptions = {
 		interface: "eth0",
 		sudo: true
@@ -77,10 +93,10 @@ function getDevicesOnNetwork(callback) {
 	Arpscan(callback, arpscanOptions);
 }
 
-const getDevicesOnNetworkAsync = Promise.promisify(getDevicesOnNetwork);
+const getDevicesOnNetworkAsync = Promise.promisify(detectDevices);
 
-async function main() {
-	await c_server.listen(80);
+function main() {
+	c_server.listen(80);
 	if (c_server.listening)
 		c_log.info("Server is listening");
 }

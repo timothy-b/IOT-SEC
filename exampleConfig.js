@@ -1,10 +1,19 @@
 // fill in the values and rename to config.js
 
 var Config = {
-	whitelistedDevices: [
+	// these will not trigger alerts
+	myPortableDevices: [
 		{
 			mac: "00:00:00:00:00:00",
 			name: "my phone"
+		}
+	],
+
+	// these will trigger alerts
+	knownPortableDevices: [
+		{
+			mac: "11:11:11:11:11:11",
+			name: "my roomate"
 		}
 	],
 
