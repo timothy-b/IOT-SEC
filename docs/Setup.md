@@ -18,6 +18,8 @@ Next you'll need to install NPM and Node. Unfortunately, on the Raspberry Pi 1 t
 
 Next, you'll need to get my project files to your Pi. I don't have any releases or install scripts yet, so you can copy the files from Github, or just `apt-get install git` and `git clone https://github.com/timothy-b/IOT-SEC.git`.
 
+Next install the arp-scan dependency: `apt-get install arp-scan`
+
 Next, make a copy of `exampleConfig.js`, name it `config.js`, and fill in the appropriate values. 
 
 Next, you can run `node tests/test-whatever.js` to run different tests and `node program.js` as admin to run the web server program.
@@ -31,7 +33,7 @@ After=multi-user.target
 
 [Service]
 Type=idle
-ExecStart=/usr/bin/node /home/pi/IOT-SEC/program.js
+ExecStart=/usr/bin/node /home/pi/IOT-SEC/src/program.js
 
 [Install]
 WantedBy=multi-user.target
