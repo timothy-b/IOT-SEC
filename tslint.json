@@ -11,13 +11,7 @@
             "single",
             "jsx-double"
         ],
-        "trailing-comma": [
-            true,
-            {
-                "multiline": "always",
-                "singleline": "never"
-            }
-        ],
+        "trailing-comma": "es5",
         "ordered-imports": false,
         "indent": [
             true,
