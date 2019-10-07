@@ -1,8 +1,8 @@
 import Arpscan from 'arpscan';
-import Bunyan from 'bunyan';
+import * as Bunyan from 'bunyan';
 import { Config, IDevice } from './config.js';
 import Email from 'emailjs';
-import Http from 'http';
+import * as Http from 'http';
 import { promisify } from 'util';
 
 const c_log = Bunyan.createLogger(Config.bunyan);
