@@ -1,27 +1,33 @@
 {
-  "name": "iotsec",
-  "version": "0.0.1",
-  "description": "an IOT security system using a Particle Photon and a Raspberry Pi",
-  "main": "web_server.js",
-  "dependencies": {
-    "arpscan": "^0.6.0",
-    "async": "^2.6.0",
-    "bluebird": "^3.5.1",
-    "bunyan": "^1.8.12",
-    "emailjs": "^2.0.0"
-  },
-  "devDependencies": {},
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git repo here"
-  },
-  "keywords": [
-    "IOT",
-    "security"
-  ],
-  "author": "Timothy Baumgartner",
-  "license": "MIT"
+    "name": "iotsec",
+    "version": "0.0.1",
+    "description": "an IOT security system using a Particle Photon and a Raspberry Pi",
+    "main": "web_server.js",
+    "dependencies": {
+        "@types/async": "^3.0.2",
+        "@types/bunyan": "^1.8.6",
+        "@types/node": "^12.7.11",
+        "arpscan": "^0.6.0",
+        "async": "^2.6.0",
+        "bunyan": "^1.8.12",
+        "emailjs": "^2.0.0",
+        "typescript": "^3.6.3"
+    },
+    "devDependencies": {
+        "tslint": "^5.20.0",
+        "tslint-config-prettier": "^1.18.0"
+    },
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git repo here"
+    },
+    "keywords": [
+        "IOT",
+        "security"
+    ],
+    "author": "Timothy Baumgartner",
+    "license": "MIT"
 }

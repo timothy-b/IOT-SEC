@@ -1,0 +1,30 @@
+{
+    "defaultSeverity": "error",
+    "extends": [
+        "tslint:recommended",
+        "tslint-config-prettier"
+    ],
+    "jsRules": {},
+    "rules": {
+        "quotemark": [
+            true,
+            "single",
+            "jsx-double"
+        ],
+        "trailing-comma": "es5",
+        "ordered-imports": false,
+        "indent": [
+            true,
+            "tabs",
+            4
+        ],
+        "arrow-parens": false,
+        "object-literal-sort-keys": false 
+    },
+    "rulesDirectory": [],
+    "linterOptions": {
+        "exclude": [
+            "./prettier.config.js"
+        ]
+    }
+}

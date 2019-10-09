@@ -1,5 +1,6 @@
 # config.js - don't upload your credentials
 config.js
+config.ts
 
 # Logs
 logs

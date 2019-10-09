@@ -1,0 +1,16 @@
+{
+	"printWidth": 100,
+	"singleQuote": true,
+	"useTabs": true,
+	"tabWidth": 4,
+	"trailingComma": "es5",
+	"semi": true,
+	"overrides": [
+		{
+			"files": "package.json",
+			"options": {
+				"useTabs": false
+			}
+		}
+	]
+}
