@@ -1,4 +1,4 @@
-const http = require("http");
+const http = require('http');
 
 const html = `
 <!DOCTYPE "html">
@@ -13,11 +13,10 @@ Hello World!
 `;
 
 const server = http.createServer(function(request, response) {
+	console.log('method: ' + request.method);
+	console.log('url: ' + request.url);
 
-	console.log("method: " + request.method);
-	console.log("url: " + request.url);
-
-	let body = "";
+	let body = '';
 	request.on('readable', function() {
 		body += request.read();
 	});
@@ -25,11 +24,10 @@ const server = http.createServer(function(request, response) {
 		console.log(body);
 	});
 
-	response.writeHead(200, {"Content-Type": "text/html"});
+	response.writeHead(200, { 'Content-Type': 'text/html' });
 	response.write(html);
 	response.end();
-
 });
 
 server.listen(80);
-console.log("Server is listening");
+console.log('Server is listening');

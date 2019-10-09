@@ -24,6 +24,8 @@ Next, make a copy of `exampleConfig.js`, name it `config.js`, and fill in the ap
 
 Next, you can run `node tests/test-whatever.js` to run different tests and `node program.js` as admin to run the web server program.
 
+Next, install dependencies with `npm install` and then transpile typescript with `tsc`.
+
 Finally, install the program as a service with Systemd. Create a file `/etc/systemd/system/iotsec.service` with the following config:
 ```
 [Unit]
@@ -47,7 +49,7 @@ If you don't have basic working familiarity with your Photon, you should follow 
 
 ### Wiring the circuit
 
-Wire according to the schematic provided. Note that the Hall Sensor requires a resistor between its input and output pins - I didn't notice this mentioned anywhere I looked online.
+Wire according to [the schematic provided](IOT-SEC_Schematic.png). Note that the Hall Sensor requires a resistor between its input and output pins - I didn't notice this mentioned anywhere I looked online.
 
 ### Particle cloud configuration
 You'll need to set up a webhook for the Photon to send messages to the Raspberry Pi. The example configuration has basic HTTP authentication enabled by default, but you can disable it by flipping the `Config.basicAuthentication.enabled` flag to `false`. Basic HTTP authentication is easy to setup and use, so I wouldn't recommend disabling it.

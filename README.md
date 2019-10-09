@@ -1,11 +1,11 @@
 # IOT-SEC
 A homebuilt security system using a Raspberry Pi and a Particle Photon.
 
-[Bill of materials](https://github.com/timothy-b/IOT-SEC/blob/master/docs/Bill%20of%20Materials.md)
+[Bill of materials](docs/Bill_of_Materials.md)
 
-[Setup documentation](https://github.com/timothy-b/IOT-SEC/blob/master/docs/Setup.md)
+[Particle Photon Schematic](docs/IOT-SEC_Schematic.png)
+
+[Setup documentation](docs/Setup.md)
 
 ## TODO:
 * Add smoketest/status/dashboard page
-* Convert to Typescript
-* Use async/await all the way

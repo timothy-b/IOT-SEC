@@ -4,20 +4,24 @@
     "description": "an IOT security system using a Particle Photon and a Raspberry Pi",
     "main": "web_server.js",
     "dependencies": {
-        "@types/async": "^3.0.2",
-        "@types/bunyan": "^1.8.6",
-        "@types/node": "^12.7.11",
         "arpscan": "^0.6.0",
         "async": "^2.6.0",
         "bunyan": "^1.8.12",
-        "emailjs": "^2.0.0",
-        "typescript": "^3.6.3"
+        "emailjs": "^2.0.0"
     },
     "devDependencies": {
+        "@types/async": "^3.0.2",
+        "@types/bunyan": "^1.8.6",
+        "@types/node": "^12.7.12",
+        "eslint-config-faithlife": "^6.1.0",
         "tslint": "^5.20.0",
-        "tslint-config-prettier": "^1.18.0"
+        "tslint-config-prettier": "^1.18.0",
+        "typescript": "^3.6.3"
     },
     "scripts": {
+        "build": "./node_modules/.bin/tsc",
+        "watch": "./node_modules/.bin/tsc --watch",
+        "start": "node ./dist/program.js",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "repository": {
