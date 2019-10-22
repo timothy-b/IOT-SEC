@@ -2,9 +2,8 @@ import { LoggerOptions } from 'bunyan';
 import { IDevice } from './IDevice';
 
 export interface IConfig {
-	myPortableDevices: IDevice[]; // these will not tirgger alerts
+	myPortableDevices: IDevice[]; // these will not trigger alerts
 	knownPortableDevices?: IDevice[]; // these will trigger alerts
-	whitelistedDevices?: IDevice[];
 	emailServer: {
 		user: string;
 		password: string;

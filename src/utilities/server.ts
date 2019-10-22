@@ -24,17 +24,22 @@ async function processRequest(
 	config: IConfig,
 	log: Bunyan
 ): Promise<void> {
+	log.info('processing request...');
 	if (request.method !== 'POST') {
 		return;
 	}
 
+	log.info('authenticating...');
 	if (config.basicAuthentication.enabled
-		&& !isAuthenticated(config, request.headers.authorization)) {
+		&& !isAuthenticated(config, request.headers.authorization, log)) {
+			log.info('not auth\'d');
 		return
 	}
 
+	log.info('waiting...');
 	setTimeout(async () => {
-		await alertIfNotHome(config, log);
+		log.info('alerting...')
+		alertIfNotHome(config, log);
 	}, 30000);
 }
 

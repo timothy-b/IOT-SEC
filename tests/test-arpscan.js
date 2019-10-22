@@ -1,4 +1,8 @@
+const util = require('util');
 const arpscan = require('arpscan');
+const Arpscan = require('arpscan');
+
+console.log(arpscan);
 
 arpscan(
 	function(err, data) {
@@ -10,3 +14,18 @@ arpscan(
 		sudo: true,
 	}
 );
+
+function detectDevices(callback) {
+	const arpscanOptions = {
+		interface: 'eth0',
+		sudo: true,
+	};
+	Arpscan(callback, arpscanOptions);
+}
+
+const detectDevicesAsync = util.promisify(detectDevices);
+
+(async () => {
+	const result = await detectDevicesAsync();
+	console.log(result);
+})();

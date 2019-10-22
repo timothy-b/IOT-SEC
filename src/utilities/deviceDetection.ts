@@ -1,10 +1,15 @@
 import Arpscan from 'arpscan';
 import { promisify } from 'util';
 
-import { IDevice } from "../types/IDevice";
+interface IArpscannedDevice {
+	ip: string;
+	mac: string;
+	vendor: string;
+	timestamp: number;
+}
 
 
-function detectDevices(callback: (err: Error, result: IDevice[]) => void) {
+function detectDevices(callback: (err: Error, result: IArpscannedDevice[]) => void) {
 	const arpscanOptions = {
 		interface: 'eth0',
 		sudo: true,
@@ -12,4 +17,4 @@ function detectDevices(callback: (err: Error, result: IDevice[]) => void) {
 	Arpscan(callback, arpscanOptions);
 }
 
-export const detectDevicesAsync = promisify<IDevice[]>(detectDevices);
+export const detectDevicesAsync = promisify<IArpscannedDevice[]>(detectDevices);
