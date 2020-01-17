@@ -1,11 +1,10 @@
 const util = require('util');
-const arpscan = require('arpscan');
 const Arpscan = require('arpscan');
 
-console.log(arpscan);
+console.log(Arpscan);
 
-arpscan(
-	function(err, data) {
+Arpscan(
+	function (err, data) {
 		if (err) console.error(data);
 		console.log(JSON.stringify(data));
 	},

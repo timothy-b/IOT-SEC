@@ -9,7 +9,7 @@ interface IArpscannedDevice {
 }
 
 
-function detectDevices(callback: (err: Error, result: IArpscannedDevice[]) => void) {
+function arpscanDevices(callback: (err: Error, result: IArpscannedDevice[]) => void) {
 	const arpscanOptions = {
 		interface: 'eth0',
 		sudo: true,
@@ -17,4 +17,4 @@ function detectDevices(callback: (err: Error, result: IArpscannedDevice[]) => vo
 	Arpscan(callback, arpscanOptions);
 }
 
-export const detectDevicesAsync = promisify<IArpscannedDevice[]>(detectDevices);
+export const arpscanDevicesAsync = promisify<IArpscannedDevice[]>(arpscanDevices);

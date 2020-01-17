@@ -4,6 +4,7 @@ import * as Email from 'emailjs';
 
 import { IConfig } from '../types/IConfig';
 
+// TODO: promisify
 export const sendEmail = (email, config: IConfig, callback: (err, result) => void): void => {
 	const connection = Email.server.connect(config.emailServer);
 

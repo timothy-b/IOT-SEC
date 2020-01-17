@@ -3,13 +3,13 @@ import * as Bunyan from 'bunyan';
 
 import { IConfig } from '../types/IConfig';
 import { isAuthenticated } from './basicAuth';
-import { alertIfNotHome } from './alerter';
+import { runAlerterAsync } from './alerter';
 
 export const createServer = (config: IConfig, log: Bunyan) => {
 	return Http.createServer(async (request, response) => {
-		await processRequest(request, config, log);
+		await processRequestAsync(request, config, log);
 
-		await sendResponse(request, response, config, log);
+		await sendResponseAsync(request, response, config, log);
 	}).on('error', error => {
 		if (error.message.includes('EACCES')) {
 			log.warn('EACCES error - permission denied. You must run the program as admin.');
@@ -19,7 +19,7 @@ export const createServer = (config: IConfig, log: Bunyan) => {
 	});
 }
 
-async function processRequest(
+async function processRequestAsync(
 	request: Http.IncomingMessage,
 	config: IConfig,
 	log: Bunyan
@@ -36,14 +36,10 @@ async function processRequest(
 		return
 	}
 
-	log.info('waiting...');
-	setTimeout(async () => {
-		log.info('alerting...')
-		alertIfNotHome(config, log);
-	}, 30000);
+	await runAlerterAsync(config, log);
 }
 
-async function sendResponse(
+async function sendResponseAsync(
 	request: Http.IncomingMessage,
 	response: Http.ServerResponse,
 	config: IConfig,
