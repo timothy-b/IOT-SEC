@@ -1,6 +1,6 @@
 import * as Bunyan from 'bunyan';
 import { sendEmail } from './email';
-import { IConfig } from "../types/IConfig";
+import { IConfig } from '../types/IConfig';
 import { IDevice } from '../types/IDevice';
 import { arpscanDevicesAsync } from './scanner';
 
@@ -12,105 +12,104 @@ interface IEmail {
 	port: number;
 }
 
-export async function runAlerterAsync(config: IConfig, log: Bunyan) {
-	const wasIHome = await determineWhetherIAmHomeAsync(config, log)
+export function createAlerter(config: IConfig, log: Bunyan) {
+	async function runAlerterAsync() {
+		const iAmHome = await determineWhetherIAmHomeAsync();
 
-	log.info('waiting...');
-	setTimeout(async () => {
-		alertConditionallyAsync(wasIHome, config, log)
-	}, 30000);
-}
+		setTimeout(async () => {
+			await alertConditionallyAsync(iAmHome);
+		}, 30000);
+	}
 
-function alert(
-	email: IEmail,
-	config: IConfig,
-	log: Bunyan)
-{
-	log.info('sending email');
+	function alert(email: IEmail) {
+		log.debug('sending email');
 
-	sendEmail(email, config, (err, result) => {
-		log.info(err);
-		log.info(result);
-	});
-}
+		sendEmail(email, config, (err, result) => {
+			if (err) {
+				log.error(err);
+			} else {
+				log.info(result);
+			}
+		});
+	}
 
-async function alertConditionallyAsync(wasIHome: boolean, config: IConfig, log: Bunyan) {
-	log.info('scanning...');
+	async function alertConditionallyAsync(iWasHome: boolean) {
 		const detectedDevices = await arpscanDevicesAsync();
-
-		const detectedMacs = detectedDevices.map(d => d.mac);
 		log.info(detectedDevices);
 
-		const myPortableDevices = (config.myPortableDevices || [])
-			.filter(wd => detectedMacs.includes(wd.mac));
+		const detectedMacs = new Set(detectedDevices.map(d => d.mac));
 
-		log.info(myPortableDevices);
+		const iAmHome = detectedMacs.has(config.myPortableDevice.mac);
 
-		if (wasIHome && myPortableDevices.length === 0) {
-			alertLeftHome(config, log);
-		} else if (!wasIHome && myPortableDevices.length !== 0) {
-			alertWelcomeHome(config, log);
+		if (iWasHome && !iAmHome) {
+			alertGoodbye();
+		} else if (!iWasHome && iAmHome) {
+			alertWelcomeHome();
 		} else {
-			const knownPortableDevices = (config.knownPortableDevices || [])
-				.filter(kd => detectedMacs.includes(kd.mac));
+			const knownPortableDevices = (config.knownPortableDevices || []).filter(kd =>
+				detectedMacs.has(kd.mac)
+			);
 
-			log.info(knownPortableDevices);
+			if (iWasHome && iAmHome) {
+				alertSomeoneHome(knownPortableDevices);
+			} else if (!iWasHome && !iAmHome) {
+				log.info(knownPortableDevices);
 
-			if (myPortableDevices.length === 0) {
-				alertNotHome(knownPortableDevices, config, log);
+				if (knownPortableDevices.length === 0) {
+					alertNobodyHome();
+				} else {
+					alertSomeoneHome(knownPortableDevices);
+				}
 			}
 		}
-}
+	}
 
-function alertLeftHome(
-	config: IConfig,
-	log: Bunyan)
-{
-	const email = {
-		...config.emailRecipient,
-		text: 'Goodbye.'
-	};
-
-	alert(email, config, log);
-}
-
-async function alertNotHome(
-	detectedKnownPortableDevices: IDevice[],
-	config: IConfig,
-	log: Bunyan) 
-{
-	const email = detectedKnownPortableDevices.length !== 0
-		? {
-				...config.emailRecipient,
-				text: `${detectedKnownPortableDevices.map(d => d.name).join(', ')} is home.`,
-			}
-		: {
+	function alertGoodbye() {
+		const email = {
 			...config.emailRecipient,
-			text: 'The fortress is in peril.'
+			text: 'Goodbye.',
 		};
 
-	alert(email, config, log);
-}
+		alert(email);
+	}
 
-function alertWelcomeHome(
-	config: IConfig,
-	log: Bunyan)
-{
-	const email = {
-		...config.emailRecipient,
-		text: 'Welcome home.'
-	};
+	function alertWelcomeHome() {
+		const email = {
+			...config.emailRecipient,
+			text: 'Welcome home.',
+		};
 
-	alert(email, config, log);
-}
+		alert(email);
+	}
 
-async function determineWhetherIAmHomeAsync(config: IConfig, log: Bunyan): Promise<boolean> {
-	const initialDetectedDevices = await arpscanDevicesAsync();
-	const detectedMacs = initialDetectedDevices.map(d => d.mac);
-	log.info(initialDetectedDevices);
+	async function alertSomeoneHome(detectedKnownPortableDevices: IDevice[]) {
+		const grammar = detectedKnownPortableDevices.length > 1 ? 'are' : 'is';
 
-	const initialMyPortableDevices = (config.myPortableDevices || [])
-		.filter(wd => detectedMacs.includes(wd.mac));
+		const email = {
+			...config.emailRecipient,
+			text: `${detectedKnownPortableDevices.map(d => d.name).join(', ')} ${grammar} home.`,
+		};
 
-	return initialMyPortableDevices.length === 1;
+		alert(email);
+	}
+
+	async function alertNobodyHome() {
+		const email = {
+			...config.emailRecipient,
+			text: 'The fortress is in peril.',
+		};
+
+		alert(email);
+	}
+
+	async function determineWhetherIAmHomeAsync(): Promise<boolean> {
+		const detectedDevices = await arpscanDevicesAsync();
+		log.info(detectedDevices);
+
+		const detectedMacs = new Set(detectedDevices.map(d => d.mac));
+
+		return detectedMacs.has(config.myPortableDevice.mac);
+	}
+
+	return { runAlerterAsync };
 }

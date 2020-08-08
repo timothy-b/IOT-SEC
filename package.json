@@ -1,8 +1,8 @@
 {
     "name": "iotsec",
-    "version": "0.0.1",
-    "description": "an IOT security system using a Particle Photon and a Raspberry Pi",
-    "main": "web_server.js",
+    "version": "1.0.0",
+    "description": "An IOT security system using a Particle Photon and a Raspberry Pi",
+    "main": "dist/program.js",
     "dependencies": {
         "arpscan": "^0.6.0",
         "async": "^2.6.0",
@@ -28,12 +28,17 @@
     },
     "repository": {
         "type": "git",
-        "url": "git repo here"
+        "url": "https://github.com/timothy-b/IOT-SEC"
     },
     "keywords": [
         "IOT",
         "security"
     ],
     "author": "Timothy Baumgartner",
-    "license": "MIT"
+    "license": "MIT",
+    "eslintConfig": {
+        "extends": [
+            "@faithlife/eslint-config-flcom-addin"
+        ]
+    }
 }

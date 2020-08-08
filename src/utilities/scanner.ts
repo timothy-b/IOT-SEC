@@ -8,7 +8,6 @@ interface IArpscannedDevice {
 	timestamp: number;
 }
 
-
 function arpscanDevices(callback: (err: Error, result: IArpscannedDevice[]) => void) {
 	const arpscanOptions = {
 		interface: 'eth0',

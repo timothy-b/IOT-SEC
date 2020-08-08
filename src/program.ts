@@ -1,13 +1,14 @@
 import * as Bunyan from 'bunyan';
-import Config from './config.js';
-import { createServer } from './utilities/server';
 import * as Arpscan from 'arpscan';
+import Config from './config';
+import { createServer } from './utilities/server';
 
 function main() {
 	const log = Bunyan.createLogger(Config.bunyan);
-	const server = createServer(Config, log);
+	const { runServer } = createServer(Config, log);
+	const server = runServer();
 	console.log(Arpscan);
-	
+
 	server.listen(80);
 	if (server.listening) {
 		log.info('Server is listening');

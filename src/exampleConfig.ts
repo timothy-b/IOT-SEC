@@ -1,13 +1,11 @@
-import { IConfig } from "./types/IConfig";
+import { IConfig } from './types/IConfig';
 
 // fill in the values and rename to config.js
 const Config: IConfig = {
-	myPortableDevices: [
-		{
-			mac: '00:00:00:00:00:00',
-			name: 'my phone',
-		},
-	],
+	myPortableDevice: {
+		mac: '00:00:00:00:00:00',
+		name: 'my phone',
+	},
 	knownPortableDevices: [
 		{
 			mac: '11:11:11:11:11:11',
