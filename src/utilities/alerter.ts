@@ -51,7 +51,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			);
 
 			if (iWasHome && iAmHome) {
-				alertSomeoneHome(knownPortableDevices);
+				alertDoorOpen();
 			} else if (!iWasHome && !iAmHome) {
 				log.info({ knownPortableDevices });
 
@@ -77,6 +77,15 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const email = {
 			...config.emailRecipient,
 			text: 'Welcome home.',
+		};
+
+		alert(email);
+	}
+
+	async function alertDoorOpen() {
+		const email = {
+			...config.emailRecipient,
+			text: 'The door is open.',
 		};
 
 		alert(email);
