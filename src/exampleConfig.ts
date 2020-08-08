@@ -45,12 +45,15 @@ const Config: IConfig = {
 		name: 'IOTSEC',
 		streams: [
 			{
+				stream: process.stdout, // log INFO and above to stdout
 				level: 'info',
-				stream: process.stdout,
 			},
 			{
-				level: 'warn',
-				path: './iotsec.log',
+				type: 'rotating-file',
+				level: 'info',
+				period: '1d',
+				count: 30,
+				path: '/var/log/iotsec.log', // log INFO and above to a file
 			},
 		],
 	},

@@ -32,7 +32,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			config.basicAuthentication.enabled &&
 			!isAuthenticated(config, request.headers.authorization, log)
 		) {
-			log.info("not auth'd");
+			log.error("not auth'd");
 			return;
 		}
 
@@ -50,15 +50,15 @@ export function createServer(config: IConfig, log: Bunyan) {
 
 		// eslint-disable-next-line mozilla/balanced-listeners
 		request.on('end', () => {
-			log.info(
-				{
+			log.info({
+				request: {
 					method: request.method,
 					url: request.url,
 					headers: request.headers,
 					body,
 				},
-				'request received'
-			);
+				msg: 'request received',
+			});
 		});
 
 		response.writeHead(200, { 'Content-Type': 'text/html' });

@@ -28,14 +28,14 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			if (err) {
 				log.error(err);
 			} else {
-				log.info(result);
+				log.info({ email: result });
 			}
 		});
 	}
 
 	async function alertConditionallyAsync(iWasHome: boolean) {
 		const detectedDevices = await arpscanDevicesAsync();
-		log.info(detectedDevices);
+		log.info({ detectedDevices });
 
 		const detectedMacs = new Set(detectedDevices.map(d => d.mac));
 
@@ -53,7 +53,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			if (iWasHome && iAmHome) {
 				alertSomeoneHome(knownPortableDevices);
 			} else if (!iWasHome && !iAmHome) {
-				log.info(knownPortableDevices);
+				log.info({ knownPortableDevices });
 
 				if (knownPortableDevices.length === 0) {
 					alertNobodyHome();
@@ -104,7 +104,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 
 	async function determineWhetherIAmHomeAsync(): Promise<boolean> {
 		const detectedDevices = await arpscanDevicesAsync();
-		log.info(detectedDevices);
+		log.info({ detectedDevices });
 
 		const detectedMacs = new Set(detectedDevices.map(d => d.mac));
 
