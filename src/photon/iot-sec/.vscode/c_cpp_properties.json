@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:\\Users\\timothy\\.particle\\toolchains\\deviceOS\\1.5.2\\**",
+                "C:\\Users\\timothy\\.particle\\toolchains\\gcc-arm\\5.3.1\\arm-none-eabi\\include\\c++\\5.3.1\\arm-none-eabi\\armv6-m\\**"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE"
+            ],
+            "intelliSenseMode": "gcc-arm",
+            "compilerPath": "C:\\Users\\timothy\\.particle\\toolchains\\gcc-arm\\5.3.1\\bin\\arm-none-eabi-gcc",
+            "forcedInclude": [],
+            "browse": {
+                "path": []
+            }
+        }
+    ],
+    "version": 4
+}

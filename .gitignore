@@ -63,3 +63,6 @@ typings/
 
 # tsc transpiled outpit
 dist/*
+
+# compiled Particle files
+**/target/**
