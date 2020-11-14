@@ -38,7 +38,7 @@ void loop() {
 
   if (isDoorOpen != sensorValue) {
     if (sensorValue)
-      Particle.publish("doorOpened", "the door has opened", 60, PRIVATE);
+      Particle.publish("doorOpened", "the door has opened", PRIVATE);
 
     isDoorOpen = sensorValue;
   }

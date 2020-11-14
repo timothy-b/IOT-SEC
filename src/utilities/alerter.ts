@@ -16,6 +16,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	async function runAlerterAsync() {
 		const iAmHome = await determineWhetherIAmHomeAsync();
 
+		// TODO: poll every 10s for 120s
 		setTimeout(async () => {
 			await alertConditionallyAsync(iAmHome);
 		}, 30000);
