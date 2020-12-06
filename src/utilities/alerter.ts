@@ -1,15 +1,22 @@
 import * as Bunyan from 'bunyan';
 import { sendEmail } from './email';
-import { IConfig } from '../types/IConfig';
+import { IConfig, IEmailConfig, AlertType } from '../types/IConfig';
 import { IDevice } from '../types/IDevice';
 import { arpscanDevicesAsync } from './scanner';
 
-interface IEmail {
+const defaultAlertMessages: { [alertType in AlertType]: string } = {
+	intruder: 'The fortress is in peril.',
+	departure: 'Goodbye.',
+	arrival: 'Welcome home.',
+	doorOpen: 'The door is open.',
+	knownDevice: 'A recognized device arrived.',
+}
+
+const alertTypes = Object.keys(defaultAlertMessages).reduce((map, key) => ({ ...map, [key]: key }), {}) as { [alertType in AlertType]: AlertType };
+
+interface IEmail extends IEmailConfig {
 	text: string;
-	from: string;
 	to: string;
-	ssl: boolean;
-	port: number;
 }
 
 export function createAlerter(config: IConfig, log: Bunyan) {
@@ -22,7 +29,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		}, 30000);
 	}
 
-	function alert(email: IEmail) {
+	function sendAlert(email: IEmail) {
 		log.debug('sending email');
 
 		sendEmail(email, config, (err, result) => {
@@ -43,73 +50,38 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const iAmHome = detectedMacs.has(config.myPortableDevice.mac);
 
 		if (iWasHome && !iAmHome) {
-			alertGoodbye();
+			triggerAlert(alertTypes.departure);
 		} else if (!iWasHome && iAmHome) {
-			alertWelcomeHome();
+			triggerAlert(alertTypes.arrival);
 		} else {
 			const knownPortableDevices = (config.knownPortableDevices || []).filter(kd =>
 				detectedMacs.has(kd.mac)
 			);
 
 			if (iWasHome && iAmHome) {
-				alertDoorOpen();
+				triggerAlert(alertTypes.doorOpen);
 			} else if (!iWasHome && !iAmHome) {
 				log.info({ knownPortableDevices });
 
 				if (knownPortableDevices.length === 0) {
-					alertNobodyHome();
+					triggerAlert(alertTypes.intruder);
 				} else {
-					alertSomeoneHome(knownPortableDevices);
+					triggerAlert(alertTypes.knownDevice, knownPortableDevices);
 				}
 			}
 		}
 	}
 
-	function alertGoodbye() {
-		const email = {
-			...config.emailRecipient,
-			text: 'Goodbye.',
-		};
-
-		alert(email);
-	}
-
-	function alertWelcomeHome() {
-		const email = {
-			...config.emailRecipient,
-			text: 'Welcome home.',
-		};
-
-		alert(email);
-	}
-
-	async function alertDoorOpen() {
-		const email = {
-			...config.emailRecipient,
-			text: 'The door is open.',
-		};
-
-		alert(email);
-	}
-
-	async function alertSomeoneHome(detectedKnownPortableDevices: IDevice[]) {
-		const grammar = detectedKnownPortableDevices.length > 1 ? 'are' : 'is';
+	function triggerAlert(type: AlertType, detectedKnownPortableDevices?: IDevice[]) {
+		const grammar = detectedKnownPortableDevices?.length > 1 ? 'are' : 'is';
 
 		const email = {
-			...config.emailRecipient,
-			text: `${detectedKnownPortableDevices.map(d => d.name).join(', ')} ${grammar} home.`,
+			...config.emailConfig,
+			to: config.emailRecipients[type].join(';'),
+			text: type === alertTypes.knownDevice ? `${detectedKnownPortableDevices.map(d => d.name).join(', ')} ${grammar} home.` : defaultAlertMessages[type],
 		};
 
-		alert(email);
-	}
-
-	async function alertNobodyHome() {
-		const email = {
-			...config.emailRecipient,
-			text: 'The fortress is in peril.',
-		};
-
-		alert(email);
+		sendAlert(email);
 	}
 
 	async function determineWhetherIAmHomeAsync(): Promise<boolean> {
