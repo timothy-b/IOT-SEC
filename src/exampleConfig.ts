@@ -18,12 +18,17 @@ const Config: IConfig = {
 		host: 'smtp.example.com',
 		ssl: true,
 	},
-	emailRecipient: {
-		text: 'The fortress is in peril.',
+	emailConfig: {
 		from: 'Firstname Lastname <user@example.com>',
-		to: '5555555555@messaging.carrier.com',
 		ssl: true,
 		port: 465,
+	},
+	emailRecipients: {
+		intruder: ['5555555555@messaging.carrier.com'],
+		arrival: ['5555555555@messaging.carrier.com'],
+		departure: ['5555555555@messaging.carrier.com'],
+		doorOpen: ['5555555555@messaging.carrier.com'],
+		knownDevice: ['5555555555@messaging.carrier.com'],
 	},
 	okResponseBody: `
 	<!DOCTYPE "html">
