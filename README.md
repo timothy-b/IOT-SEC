@@ -9,3 +9,4 @@ A homebuilt security system using a Raspberry Pi and a Particle Photon.
 
 ## TODO:
 * Add smoketest/status/dashboard page
+* Add auth'd route for performing a scan

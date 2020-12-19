@@ -1,7 +1,7 @@
 import { LoggerOptions } from 'bunyan';
 import { IDevice } from './IDevice';
 
-export type AlertType = 'intruder' | 'departure' | 'arrival' | 'doorOpen' | 'knownDevice';
+export type AlertType = 'intruder' | 'departure' | 'arrival' | 'doorOpen';
 
 export interface IEmailConfig {
 	from: string;
@@ -10,7 +10,6 @@ export interface IEmailConfig {
 }
 
 export interface IConfig {
-	myPortableDevice: IDevice;
 	knownPortableDevices?: IDevice[];
 	emailServer: {
 		user: string;
@@ -18,7 +17,6 @@ export interface IConfig {
 		host: string;
 		ssl: boolean;
 	};
-	emailRecipients: { [alertType in AlertType]: string[] };
 	emailConfig: IEmailConfig;
 	okResponseBody: string;
 	basicAuthentication: {

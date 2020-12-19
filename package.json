@@ -7,7 +7,9 @@
         "arpscan": "^0.6.0",
         "async": "^2.6.0",
         "bunyan": "^1.8.12",
-        "emailjs": "^2.0.0"
+        "emailjs": "^2.0.0",
+        "g": "^2.0.1",
+        "npm": "^6.14.10"
     },
     "devDependencies": {
         "@types/async": "^3.0.2",
@@ -23,7 +25,8 @@
     "scripts": {
         "build": "./node_modules/.bin/tsc",
         "watch": "./node_modules/.bin/tsc --watch",
-        "start": "node ./dist/program.js",
+        "start": "./node_modules/.bin/tsc && node ./dist/program.js",
+        "lint": "./node_modules/.bin/eslint ./src/**/*.{js,ts} --ignore-pattern **/dist --ignore-pattern **/node_modules",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "repository": {
