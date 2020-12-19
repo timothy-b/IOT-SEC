@@ -1,5 +1,5 @@
 import * as Bunyan from 'bunyan';
-import { sendEmail } from './email';
+import { sendEmailAsync } from './email';
 import { IConfig, IEmailConfig, AlertType } from '../types/IConfig';
 import { IDevice } from '../types/IDevice';
 import { arpscanDevicesAsync } from './scanner';
@@ -58,15 +58,19 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 
 			for (const mac of detectedMacs) {
 				if (!initialMacs.has(mac) && !arrivedMacs.has(mac)) {
-					sendSimpleAlert(alertTypes.arrival, [getKnownDeviceByMac(mac).emailAddress]);
 					arrivedMacs.add(mac);
+					await sendSimpleAlertAsync(alertTypes.arrival, [
+						getKnownDeviceByMac(mac).emailAddress,
+					]);
 				}
 			}
 
 			for (const mac of initialMacs) {
 				if (!detectedMacs.has(mac) && !departedMacs.has(mac)) {
-					sendSimpleAlert(alertTypes.departure, [getKnownDeviceByMac(mac).emailAddress]);
 					departedMacs.add(mac);
+					await sendSimpleAlertAsync(alertTypes.departure, [
+						getKnownDeviceByMac(mac).emailAddress,
+					]);
 				}
 			}
 		} while (--remainingPolls > 0);
@@ -87,12 +91,12 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 
 		if (arrivedMacs.size === 0 && departedMacs.size === 0) {
 			if (initialMacs.size === 0) {
-				sendSimpleAlert(
+				await sendSimpleAlertAsync(
 					alertTypes.intruder,
 					config.knownPortableDevices.map(d => d.emailAddress)
 				);
 			} else {
-				sendSimpleAlert(
+				await sendSimpleAlertAsync(
 					alertTypes.doorOpen,
 					config.knownPortableDevices
 						.filter(d => homeMacs.has(d.mac))
@@ -101,19 +105,19 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			}
 		} else {
 			if (awayMacs.size > 0) {
-				sendAlertWithMessage(
+				await sendAlertWithMessageAsync(
 					getKnownDevicesByMac(awayMacs)
 						.filter(d => d.emailAddress)
-						.join(';'),
+						.join(','),
 					buildAwaySummaryMessage(homeMacs, arrivedMacs, departedMacs)
 				);
 			}
 
 			if (homeMacs.size > 0) {
-				sendAlertWithMessage(
+				await sendAlertWithMessageAsync(
 					getKnownDevicesByMac(homeMacs)
 						.filter(d => d.emailAddress)
-						.join(';'),
+						.join(','),
 					buildHomeSummaryMessage(arrivedMacs, departedMacs)
 				);
 			}
@@ -175,32 +179,31 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		return (config.knownPortableDevices || []).filter(kd => detectedMacs.has(kd.mac));
 	}
 
-	function sendSimpleAlert(type: AlertType, recipientEmailAddresses: string[]) {
-		sendAlertCore({
+	async function sendSimpleAlertAsync(type: AlertType, recipientEmailAddresses: string[]) {
+		await sendAlertCoreAsync({
 			...config.emailConfig,
-			to: recipientEmailAddresses.join(';'),
+			to: recipientEmailAddresses.join(','),
 			text: defaultAlertMessages[type],
 		});
 	}
 
-	function sendAlertWithMessage(recipients: string, message: string) {
-		sendAlertCore({
+	async function sendAlertWithMessageAsync(recipients: string, message: string) {
+		await sendAlertCoreAsync({
 			...config.emailConfig,
 			to: recipients,
 			text: message,
 		});
 	}
 
-	function sendAlertCore(email: IEmail) {
+	async function sendAlertCoreAsync(email: IEmail) {
 		log.debug('sending email');
 
-		sendEmail(email, config, (err, result) => {
-			if (err) {
-				log.error(err);
-			} else {
-				log.info({ email: result });
-			}
-		});
+		try {
+			const message = await sendEmailAsync(email, config);
+			log.info({ emailResult: message });
+		} catch (e) {
+			log.error(e);
+		}
 	}
 
 	return { runAlerterAsync };
