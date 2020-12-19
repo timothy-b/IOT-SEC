@@ -17,6 +17,7 @@
         "@types/node": "^12.7.12",
         "eslint": "^5.16.0",
         "eslint-config-faithlife": "^6.1.0",
+        "husky": "^4.3.6",
         "prettier": "^1.19.1",
         "tslint": "^5.20.0",
         "tslint-config-prettier": "^1.18.0",
@@ -41,7 +42,12 @@
     "license": "MIT",
     "eslintConfig": {
         "extends": [
-            "@faithlife/eslint-config-flcom-addin"
+            "faithlife/base"
         ]
+    },
+    "husky": {
+        "hooks": {
+            "pre-commit": "npm run lint"
+        }
     }
 }

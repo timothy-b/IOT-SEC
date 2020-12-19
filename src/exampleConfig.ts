@@ -6,12 +6,12 @@ const Config: IConfig = {
 		{
 			mac: '00:00:00:00:00:00',
 			name: 'my phone',
-			emailAddress: '5550000000@messaging.carrier.com'
+			emailAddress: '5550000000@messaging.carrier.com',
 		},
 		{
 			mac: '11:11:11:11:11:11',
 			name: 'my roomate',
-			emailAddress: '5551111111@messaging.carrier.com'
+			emailAddress: '5551111111@messaging.carrier.com',
 		},
 	],
 	emailServer: {

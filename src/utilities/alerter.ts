@@ -9,17 +9,20 @@ const defaultAlertMessages: { [alertType in AlertType]: string } = {
 	departure: 'Goodbye.',
 	arrival: 'Welcome home.',
 	doorOpen: 'The door is open.',
-}
+};
 
-const alertTypes = Object.keys(defaultAlertMessages).reduce((map, key) => ({ ...map, [key]: key }), {}) as { [alertType in AlertType]: AlertType };
+const alertTypes = Object.keys(defaultAlertMessages).reduce(
+	(map, key) => ({ ...map, [key]: key }),
+	{}
+) as { [alertType in AlertType]: AlertType };
 
 interface IEmail extends IEmailConfig {
 	text: string;
 	to: string;
 }
 
-function wait(ms: number) : Promise<number> {
-    return new Promise((resolve: TimerHandler) => setTimeout(resolve, ms))
+function wait(ms: number): Promise<number> {
+	return new Promise((resolve: TimerHandler) => setTimeout(resolve, ms));
 }
 
 export function createAlerter(config: IConfig, log: Bunyan) {
@@ -32,14 +35,16 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const initialKnownDevices = await scanForKnownDevicesAsync();
 		const initialMacs = new Set<string>(initialKnownDevices.map(d => d.mac));
 
-		const { arrivedMacs, departedMacs } = await pollForDevicePresenceTransitionsAsync(initialMacs);
+		const { arrivedMacs, departedMacs } = await pollForDevicePresenceTransitionsAsync(
+			initialMacs
+		);
 
 		await sendSummaryMessagesAsync(initialMacs, arrivedMacs, departedMacs);
 	}
 
-	async function pollForDevicePresenceTransitionsAsync(initialMacs: Set<string>)
-		: Promise<{ arrivedMacs: Set<string>, departedMacs: Set<string> }>
-	{
+	async function pollForDevicePresenceTransitionsAsync(
+		initialMacs: Set<string>
+	): Promise<{ arrivedMacs: Set<string>; departedMacs: Set<string> }> {
 		const arrivedMacs = new Set<string>();
 		const departedMacs = new Set<string>();
 		const pollingLengthInSeconds = 120;
@@ -53,14 +58,14 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 
 			for (const mac of detectedMacs) {
 				if (!initialMacs.has(mac) && !arrivedMacs.has(mac)) {
-					sendSimpleAlert(alertTypes.arrival, [ getKnownDeviceByMac(mac).emailAddress ]);
+					sendSimpleAlert(alertTypes.arrival, [getKnownDeviceByMac(mac).emailAddress]);
 					arrivedMacs.add(mac);
 				}
 			}
 
 			for (const mac of initialMacs) {
 				if (!detectedMacs.has(mac) && !departedMacs.has(mac)) {
-					sendSimpleAlert(alertTypes.departure, [ getKnownDeviceByMac(mac).emailAddress ]);
+					sendSimpleAlert(alertTypes.departure, [getKnownDeviceByMac(mac).emailAddress]);
 					departedMacs.add(mac);
 				}
 			}
@@ -72,25 +77,36 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	async function sendSummaryMessagesAsync(
 		initialMacs: Set<string>,
 		arrivedMacs: Set<string>,
-		departedMacs: Set<string>)
-	{
-		const nonTravellingMacs = config.knownPortableDevices.map(d => d.mac)
+		departedMacs: Set<string>
+	) {
+		const nonTravellingMacs = config.knownPortableDevices
+			.map(d => d.mac)
 			.filter(mac => !arrivedMacs.has(mac) && !departedMacs.has(mac));
 		const awayMacs = new Set<string>(nonTravellingMacs.filter(mac => !initialMacs.has(mac)));
 		const homeMacs = new Set<string>(nonTravellingMacs.filter(mac => initialMacs.has(mac)));
 
 		if (arrivedMacs.size === 0 && departedMacs.size === 0) {
-			if (initialMacs.size === 0)
-				sendSimpleAlert(alertTypes.intruder, config.knownPortableDevices.map(d => d.emailAddress))
-			else
-				sendSimpleAlert(alertTypes.doorOpen, config.knownPortableDevices.filter(d => homeMacs.has(d.mac)).map(d => d.emailAddress))
+			if (initialMacs.size === 0) {
+				sendSimpleAlert(
+					alertTypes.intruder,
+					config.knownPortableDevices.map(d => d.emailAddress)
+				);
+			} else {
+				sendSimpleAlert(
+					alertTypes.doorOpen,
+					config.knownPortableDevices
+						.filter(d => homeMacs.has(d.mac))
+						.map(d => d.emailAddress)
+				);
+			}
 		} else {
 			if (awayMacs.size > 0) {
 				sendAlertWithMessage(
 					getKnownDevicesByMac(awayMacs)
 						.filter(d => d.emailAddress)
 						.join(';'),
-					buildAwaySummaryMessage(homeMacs, arrivedMacs, departedMacs));
+					buildAwaySummaryMessage(homeMacs, arrivedMacs, departedMacs)
+				);
 			}
 
 			if (homeMacs.size > 0) {
@@ -98,27 +114,23 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 					getKnownDevicesByMac(homeMacs)
 						.filter(d => d.emailAddress)
 						.join(';'),
-					buildHomeSummaryMessage(arrivedMacs, departedMacs));
+					buildHomeSummaryMessage(arrivedMacs, departedMacs)
+				);
 			}
 		}
 	}
 
-	function getKnownDeviceByMac(mac: string): IDevice
-	{
+	function getKnownDeviceByMac(mac: string): IDevice {
 		return portableDeviceByMac[mac] as IDevice;
 	}
 
-	function getKnownDevicesByMac(macs: Set<string>): IDevice[]
-	{
+	function getKnownDevicesByMac(macs: Set<string>): IDevice[] {
 		return Array.from(macs.values()).map(m => portableDeviceByMac[m] as IDevice);
 	}
 
-	function buildHomeSummaryMessage(
-		arrivedMacs: Set<string>,
-		departedMacs: Set<string>): string
-	{
+	function buildHomeSummaryMessage(arrivedMacs: Set<string>, departedMacs: Set<string>): string {
 		const lines = [];
-		
+
 		if (arrivedMacs.size > 0) {
 			lines.push(getLineForMacs('arrived: ', arrivedMacs));
 		}
@@ -133,10 +145,10 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	function buildAwaySummaryMessage(
 		homeMacs: Set<string>,
 		arrivedMacs: Set<string>,
-		departedMacs: Set<string>): string
-	{
+		departedMacs: Set<string>
+	): string {
 		const lines = [];
-		
+
 		if (homeMacs.size > 0) {
 			lines.push(getLineForMacs('home: ', homeMacs));
 		}
@@ -160,9 +172,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const detectedDevices = await arpscanDevicesAsync();
 		const detectedMacs = new Set(detectedDevices.map(d => d.mac));
 
-		return (config.knownPortableDevices || []).filter(kd =>
-			detectedMacs.has(kd.mac)
-		);
+		return (config.knownPortableDevices || []).filter(kd => detectedMacs.has(kd.mac));
 	}
 
 	function sendSimpleAlert(type: AlertType, recipientEmailAddresses: string[]) {
