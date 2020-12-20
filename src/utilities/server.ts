@@ -10,9 +10,12 @@ export function createServer(config: IConfig, log: Bunyan) {
 		return Http.createServer(async (request, response) => {
 			const requestLog = log.child({ traceId: uuid() }, true);
 
+			// The forums mention a 5-second timeout before the webhook push is retried, so do this first.
+			// https://community.particle.io/t/electron-and-webhooks-esockettimedout/36413/7
+			sendResponse(request, response, requestLog);
+
 			await processRequestAsync(request, requestLog);
 
-			await sendResponseAsync(request, response, requestLog);
 			// eslint-disable-next-line mozilla/balanced-listeners
 		}).on('error', error => {
 			if (error.message.includes('EACCES')) {
@@ -46,7 +49,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		await runAlerterAsync();
 	}
 
-	async function sendResponseAsync(
+	function sendResponse(
 		request: Http.IncomingMessage,
 		response: Http.ServerResponse,
 		requestLog: Bunyan

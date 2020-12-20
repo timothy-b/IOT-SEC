@@ -172,7 +172,9 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	}
 
 	function getLineForMacs(linePrefix: string, macs: Set<string>) {
-		return `${linePrefix}${getKnownDevicesByMac(macs).filter(d => d.name)}`;
+		return `${linePrefix}${getKnownDevicesByMac(macs)
+			.filter(d => d.name)
+			.join(', ')}`;
 	}
 
 	async function scanForKnownDevicesAsync(): Promise<IDevice[]> {
