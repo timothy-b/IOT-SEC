@@ -21,7 +21,7 @@ interface IEmail extends IEmailConfig {
 	to: string;
 }
 
-function wait(ms: number): Promise<number> {
+function waitAsync(ms: number): Promise<number> {
 	return new Promise((resolve: TimerHandler) => setTimeout(resolve, ms));
 }
 
@@ -51,7 +51,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const pollingIntervalInSeconds = 5;
 		let remainingPolls = pollingLengthInSeconds / pollingIntervalInSeconds;
 		do {
-			await wait(pollingIntervalInSeconds * 1000);
+			await waitAsync(pollingIntervalInSeconds * 1000);
 
 			const detectedDevices = await scanForKnownDevicesAsync();
 			const detectedMacs = new Set(detectedDevices.map(d => d.mac));
@@ -106,22 +106,25 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		} else {
 			if (awayMacs.size > 0) {
 				await sendAlertWithMessageAsync(
-					getKnownDevicesByMac(awayMacs)
-						.filter(d => d.emailAddress)
-						.join(','),
+					getEmailAddressLineForMacs(awayMacs),
 					buildAwaySummaryMessage(homeMacs, arrivedMacs, departedMacs)
 				);
 			}
 
 			if (homeMacs.size > 0) {
 				await sendAlertWithMessageAsync(
-					getKnownDevicesByMac(homeMacs)
-						.filter(d => d.emailAddress)
-						.join(','),
+					getEmailAddressLineForMacs(homeMacs),
 					buildHomeSummaryMessage(arrivedMacs, departedMacs)
 				);
 			}
 		}
+	}
+
+	function getEmailAddressLineForMacs(macs: Set<string>): string {
+		return getKnownDevicesByMac(macs)
+			.map(d => d.emailAddress)
+			.filter(a => a !== null)
+			.join(',');
 	}
 
 	function getKnownDeviceByMac(mac: string): IDevice {
@@ -182,7 +185,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	async function sendSimpleAlertAsync(type: AlertType, recipientEmailAddresses: string[]) {
 		await sendAlertCoreAsync({
 			...config.emailConfig,
-			to: recipientEmailAddresses.join(','),
+			to: recipientEmailAddresses.filter(a => a !== null).join(','),
 			text: defaultAlertMessages[type],
 		});
 	}
@@ -196,11 +199,9 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	}
 
 	async function sendAlertCoreAsync(email: IEmail) {
-		log.debug('sending email');
-
 		try {
 			const message = await sendEmailAsync(email, config);
-			log.info({ emailResult: message });
+			log.info({ emailResponse: message }, 'email results');
 		} catch (e) {
 			log.error(e);
 		}

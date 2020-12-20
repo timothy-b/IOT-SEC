@@ -1,6 +1,6 @@
 import * as Http from 'http';
 import * as Bunyan from 'bunyan';
-
+import uuid from 'uuid-random';
 import { IConfig } from '../types/IConfig';
 import { isAuthenticated } from './basicAuth';
 import { createAlerter } from './alerter';
@@ -8,9 +8,11 @@ import { createAlerter } from './alerter';
 export function createServer(config: IConfig, log: Bunyan) {
 	function runServer() {
 		return Http.createServer(async (request, response) => {
-			await processRequestAsync(request);
+			const requestLog = log.child({ traceId: uuid() }, true);
 
-			await sendResponseAsync(request, response);
+			await processRequestAsync(request, requestLog);
+
+			await sendResponseAsync(request, response, requestLog);
 			// eslint-disable-next-line mozilla/balanced-listeners
 		}).on('error', error => {
 			if (error.message.includes('EACCES')) {
@@ -21,44 +23,51 @@ export function createServer(config: IConfig, log: Bunyan) {
 		});
 	}
 
-	async function processRequestAsync(request: Http.IncomingMessage): Promise<void> {
-		log.info('processing request...');
+	async function processRequestAsync(
+		request: Http.IncomingMessage,
+		requestLog: Bunyan
+	): Promise<void> {
+		requestLog.info('processing request...');
 		if (request.method !== 'POST') {
 			return;
 		}
 
-		log.info('authenticating...');
+		requestLog.debug('authenticating...');
 		if (
 			config.basicAuthentication.enabled &&
-			!isAuthenticated(config, request.headers.authorization, log)
+			!isAuthenticated(config, request.headers.authorization, requestLog)
 		) {
-			log.error("not auth'd");
+			requestLog.error("not auth'd");
 			return;
 		}
 
-		const { runAlerterAsync } = createAlerter(config, log);
+		const { runAlerterAsync } = createAlerter(config, requestLog);
 
 		await runAlerterAsync();
 	}
 
-	async function sendResponseAsync(request: Http.IncomingMessage, response: Http.ServerResponse) {
+	async function sendResponseAsync(
+		request: Http.IncomingMessage,
+		response: Http.ServerResponse,
+		requestLog: Bunyan
+	) {
 		let body = '';
-		// eslint-disable-next-line mozilla/balanced-listeners
-		request.on('readable', () => {
+		request.once('readable', () => {
 			body += request.read();
 		});
 
-		// eslint-disable-next-line mozilla/balanced-listeners
-		request.on('end', () => {
-			log.info({
-				request: {
-					method: request.method,
-					url: request.url,
-					headers: request.headers,
-					body,
+		request.once('end', () => {
+			requestLog.info(
+				{
+					request: {
+						method: request.method,
+						url: request.url,
+						headers: { ...request.headers, authorization: 'redacted' },
+						body,
+					},
 				},
-				msg: 'request received',
-			});
+				'request received'
+			);
 		});
 
 		response.writeHead(200, { 'Content-Type': 'text/html' });

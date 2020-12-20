@@ -56,6 +56,7 @@ const Config: IConfig = {
 				path: '/var/log/iotsec.log', // log INFO and above to a file
 			},
 		],
+		src: true,
 	},
 };
 
