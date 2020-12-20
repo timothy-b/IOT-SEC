@@ -1,5 +1,6 @@
 import * as Bunyan from 'bunyan';
 import { sendEmailAsync } from './email';
+import { delayAsync } from './delay';
 import { IConfig, IEmailConfig, AlertType } from '../types/IConfig';
 import { IDevice } from '../types/IDevice';
 import { arpscanDevicesAsync } from './scanner';
@@ -19,10 +20,6 @@ const alertTypes = Object.keys(defaultAlertMessages).reduce(
 interface IEmail extends IEmailConfig {
 	text: string;
 	to: string;
-}
-
-function waitAsync(ms: number): Promise<number> {
-	return new Promise((resolve: TimerHandler) => setTimeout(resolve, ms));
 }
 
 export function createAlerter(config: IConfig, log: Bunyan) {
@@ -51,7 +48,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const pollingIntervalInSeconds = 5;
 		let remainingPolls = pollingLengthInSeconds / pollingIntervalInSeconds;
 		do {
-			await waitAsync(pollingIntervalInSeconds * 1000);
+			await delayAsync(pollingIntervalInSeconds * 1000);
 
 			const detectedDevices = await scanForKnownDevicesAsync();
 			const detectedMacs = new Set(detectedDevices.map(d => d.mac));
@@ -193,15 +190,18 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	}
 
 	async function sendAlertWithMessageAsync(recipients: string, message: string) {
-		await sendAlertCoreAsync({
-			...config.emailConfig,
-			to: recipients,
-			text: message,
-		});
+		if (recipients !== '') {
+			await sendAlertCoreAsync({
+				...config.emailConfig,
+				to: recipients,
+				text: message,
+			});
+		}
 	}
 
 	async function sendAlertCoreAsync(email: IEmail) {
 		try {
+			log.info({ emailMessage: email }, 'sending email');
 			const message = await sendEmailAsync(email, config);
 			log.info({ emailResponse: message }, 'email results');
 		} catch (e) {

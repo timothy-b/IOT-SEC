@@ -9,6 +9,7 @@
         "bunyan": "^1.8.12",
         "emailjs": "^2.0.0",
         "npm": "^7.3.0",
+        "ts-leaky-bucket": "^1.1.1",
         "uuid-random": "^1.3.2"
     },
     "devDependencies": {
