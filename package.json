@@ -1,55 +1,69 @@
 {
-    "name": "iotsec",
-    "version": "1.0.0",
-    "description": "An IOT security system using a Particle Photon and a Raspberry Pi",
-    "main": "dist/program.js",
-    "dependencies": {
-        "arpscan": "^0.6.0",
-        "async": "^2.6.0",
-        "bunyan": "^1.8.12",
-        "emailjs": "^2.0.0",
-        "npm": "^7.3.0",
-        "ts-leaky-bucket": "^1.1.1",
-        "uuid-random": "^1.3.2"
-    },
-    "devDependencies": {
-        "@types/async": "^3.0.2",
-        "@types/bunyan": "^1.8.6",
-        "@types/node": "^12.7.12",
-        "eslint": "^5.16.0",
-        "eslint-config-faithlife": "^8.1.0",
-        "husky": "^4.3.6",
-        "prettier": "^1.19.1",
-        "tslint": "^5.20.0",
-        "tslint-config-prettier": "^1.18.0",
-        "typescript": "^3.9.7"
-    },
-    "scripts": {
-        "build": "./node_modules/.bin/tsc",
-        "watch": "./node_modules/.bin/tsc --watch",
-        "start": "node ./dist/program.js",
-        "stop": "ps aux | grep node | grep iot-sec | awk '{ print $2 }' | xargs sudo kill",
-        "lint": ".\\node_modules\\.bin\\eslint ./src/**/*.{js,ts} --ignore-pattern **/dist --ignore-pattern **/node_modules",
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/timothy-b/IOT-SEC"
-    },
-    "keywords": [
-        "IOT",
-        "security"
+  "name": "iotsec",
+  "version": "1.0.0",
+  "description": "An IOT security system using a Particle Photon and a Raspberry Pi",
+  "main": "dist/program.js",
+  "dependencies": {
+    "arpscan": "^0.6.0",
+    "async": "^2.6.0",
+    "bunyan": "^1.8.12",
+    "emailjs": "^2.0.0",
+    "npm": "^7.3.0",
+    "uuid-random": "^1.3.2"
+  },
+  "devDependencies": {
+    "@types/async": "^3.0.2",
+    "@types/bunyan": "^1.8.6",
+    "@types/jest": "^26.0.19",
+    "@types/node": "^12.7.12",
+    "eslint": "^5.16.0",
+    "eslint-config-faithlife": "^8.1.0",
+    "eslint-plugin-jest": "^24.1.3",
+    "husky": "^4.3.6",
+    "jest": "^26.6.3",
+    "prettier": "^1.19.1",
+    "ts-jest": "^26.4.4",
+    "ts-node": "^9.1.1",
+    "tslint": "^5.20.0",
+    "tslint-config-prettier": "^1.18.0",
+    "typescript": "^3.9.7"
+  },
+  "scripts": {
+    "build": "./node_modules/.bin/tsc",
+    "watch": "./node_modules/.bin/tsc --watch",
+    "start": "node ./dist/program.js",
+    "stop": "ps aux | grep node | grep iot-sec | awk '{ print $2 }' | xargs sudo kill",
+    "lint": ".\\node_modules\\.bin\\eslint ./src/**/*.{js,ts} --ignore-pattern **/dist --ignore-pattern **/node_modules",
+    "test": "./node_modules/.bin/tsc tests/test-leakyBucket.test.ts && .\\node_modules\\.bin\\jest tests/test-leakyBucket.test.js --detectOpenHandles"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/timothy-b/IOT-SEC"
+  },
+  "keywords": [
+    "IOT",
+    "security"
+  ],
+  "author": "Timothy Baumgartner",
+  "license": "MIT",
+  "eslintConfig": {
+    "extends": [
+      "faithlife/base"
     ],
-    "author": "Timothy Baumgartner",
-    "license": "MIT",
-    "eslintConfig": {
-        "extends": [
-            "faithlife/base"
-        ]
+    "plugins": [
+      "jest"
+    ],
+    "env": {
+      "jest/globals": true
     },
-    "husky": {
-        "hooks": {
-            "pre-commit": "npm run lint"
-        }
+    "rules": {
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [ "error", { "varsIgnorePattern": "_" } ]
     }
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint"
+    }
+  }
 }

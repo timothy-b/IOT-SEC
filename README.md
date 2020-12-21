@@ -13,3 +13,4 @@ A homebuilt security system using a Raspberry Pi and a Particle Photon.
 -   Add smoketest/status/dashboard page
 -   Add auth'd route for performing a scan
 -   Upgrade emailjs to v3 and use their async method
+-   Refactor things in `/tests` to be Jest tests

@@ -1,7 +1,12 @@
 import * as Http from 'http';
 import * as Bunyan from 'bunyan';
-import { LeakyBucket, LeakyBucketOptions } from 'ts-leaky-bucket';
 import uuid from 'uuid-random';
+import {
+	SimpleLeakyBucket,
+	SimpleLeakyBucketOptions,
+	SimpleLeakyBucketEventKinds,
+	SimpleLeakyBucketOverflowError,
+} from './leakyBucket';
 import { IConfig } from '../types/IConfig';
 import { isAuthenticated } from './basicAuth';
 import { createAlerter } from './alerter';
@@ -9,12 +14,15 @@ import { delayAsync } from './delay';
 
 export function createServer(config: IConfig, log: Bunyan) {
 	const leakyBucketByIp: {
-		[key: string]: { bucket: LeakyBucket; deleter: Promise<void> };
+		[key: string]: SimpleLeakyBucket;
 	} = {};
-	const leakyBucketOptions: LeakyBucketOptions = {
-		capacity: 3,
-		intervalMillis: 60_000,
-		additionalTimeoutMillis: 60_000,
+
+	// The goal of these settings is to just slow the initial response
+	// for requests which should be tarpitted.
+	const leakyBucketOptions: SimpleLeakyBucketOptions = {
+		burstCapacity: 5,
+		maxCapacity: 100,
+		millisecondsPerDecrement: 1000,
 	};
 
 	function runServer() {
@@ -38,12 +46,62 @@ export function createServer(config: IConfig, log: Bunyan) {
 		return server;
 	}
 
-	function handleError(error: Error) {
-		if (error.message.includes('EACCES')) {
-			log.warn('EACCES error - permission denied. You must run the program as admin.');
+	async function processResponseAsync(
+		request: Http.IncomingMessage,
+		response: Http.ServerResponse,
+		requestLog: Bunyan
+	): Promise<boolean> {
+		const shouldTarpit = isTarPitCandidate(request);
+		if (shouldTarpit) {
+			requestLog.info({ request: getRequestInfo(request, null) }, 'delaying response');
+
+			const timeBeforeTarpit = Date.now();
+			const shouldTarpit = await maybeTarpitClientAsync(request, requestLog);
+			if (shouldTarpit) {
+				requestLog.info(`delayed for ${(Date.now() - timeBeforeTarpit) / 1000} seconds`);
+
+				response.writeHead(429);
+
+				// Tarpit for 10 minutes :)
+				/* eslint-disable  @typescript-eslint/naming-convention */
+				/* eslint-disable @typescript-eslint/no-unused-vars */
+				for (const _ of Array(60)) {
+					// Send bytes to keep the connection open.
+					response.write('a');
+					await delayAsync(10_000);
+				}
+				requestLog.debug(
+					`delayed and tarpitted for ${(Date.now() - timeBeforeTarpit) / 1000} seconds`
+				);
+				response.end();
+			}
+			response.writeHead(404);
+			response.end();
+			return false;
 		}
 
-		log.error(error, 'server error');
+		let body = '';
+		const appendBody = () => {
+			body += request.read();
+		};
+		request.on('readable', appendBody);
+
+		request.once('end', () => {
+			requestLog.info(
+				{
+					request: getRequestInfo(request, body),
+				},
+				'request received'
+			);
+
+			request.off('readable', appendBody);
+		});
+
+		response.writeHead(200, { 'Content-Type': 'text/html' });
+		response.write(config.okResponseBody);
+		response.end();
+
+		return true;
 	}
 
 	async function processRequestAsync(
@@ -60,7 +118,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			config.basicAuthentication.enabled &&
 			!isAuthenticated(config, request.headers.authorization, requestLog)
 		) {
-			requestLog.error("not auth'd");
+			requestLog.warn("not auth'd");
 			return;
 		}
 
@@ -69,91 +127,64 @@ export function createServer(config: IConfig, log: Bunyan) {
 		await runAlerterAsync();
 	}
 
-	async function processResponseAsync(
-		request: Http.IncomingMessage,
-		response: Http.ServerResponse,
-		requestLog: Bunyan
-	): Promise<boolean> {
-		const wasTarpitted = await maybeTarpitClientAsync(request, requestLog);
-		if (wasTarpitted) {
-			response.writeHead(429);
-			response.end();
-			return false;
-		}
-
-		let body = '';
-		const appendBody = () => {
-			body += request.read();
+	function getRequestInfo(request: Http.IncomingMessage, body: string) {
+		return {
+			ip: request.socket.remoteAddress,
+			ipVersion: request.socket.remoteFamily,
+			method: request.method,
+			url: request.url,
+			headers: {
+				...request.headers,
+				authorization: request.headers.authorization ? 'redacted' : null,
+			},
+			body,
 		};
-		request.on('readable', appendBody);
+	}
 
-		request.once('end', () => {
-			requestLog.info(
-				{
-					request: {
-						ip: request.socket.remoteAddress,
-						ipVersion: request.socket.remoteFamily,
-						method: request.method,
-						url: request.url,
-						headers: {
-							...request.headers,
-							authorization: request.headers.authorization ? 'redacted' : null,
-						},
-						body,
-					},
-				},
-				'request received'
-			);
-
-			request.off('readable', appendBody);
-		});
-
-		response.writeHead(200, { 'Content-Type': 'text/html' });
-		response.write(config.okResponseBody);
-		response.end();
-
-		return true;
+	function isTarPitCandidate(request: Http.IncomingMessage): boolean {
+		return !(
+			request.url === '/' ||
+			request.url === '/favicon.ico' ||
+			(request.url === '/iotsec/alertDoorOpened' && request.headers.authorization !== null)
+		);
 	}
 
 	async function maybeTarpitClientAsync(
 		request: Http.IncomingMessage,
 		requestLog: Bunyan
 	): Promise<boolean> {
-		if (
-			request.url === '/' ||
-			request.url === '/favicon.ico' ||
-			(request.url === '/iotsec/alertDoorOpened' && request.headers.authorization)
-		) {
-			return false;
-		}
-
 		const ipAddress = request.socket.remoteAddress;
 
 		if (!leakyBucketByIp.hasOwnProperty(ipAddress)) {
-			leakyBucketByIp[ipAddress] = {
-				bucket: new LeakyBucket(leakyBucketOptions),
-				deleter: null,
-			};
-		}
+			const newBucket = new SimpleLeakyBucket(leakyBucketOptions);
 
-		const bucket = leakyBucketByIp[ipAddress].bucket;
-
-		try {
-			await bucket.maybeThrottle(1);
-		} catch (e) {
-			requestLog.warn(e);
-			await delayAsync(600_000);
-			return true;
-		}
-
-		if (leakyBucketByIp[ipAddress].deleter === null) {
-			leakyBucketByIp[ipAddress].deleter = bucket.awaitEmpty().then(() => {
-				bucket.stopTimerAndClearQueue();
+			newBucket.once(SimpleLeakyBucketEventKinds.empty, () => {
+				newBucket.dispose();
 				delete leakyBucketByIp[ipAddress];
 			});
+
+			leakyBucketByIp[ipAddress] = newBucket;
 		}
 
-		return false;
+		try {
+			return await leakyBucketByIp[ipAddress].incrementAsync();
+		} catch (e) {
+			if (e instanceof SimpleLeakyBucketOverflowError) {
+				requestLog.warn(e);
+				await delayAsync(600_000);
+				return true;
+			}
+
+			throw e;
+		}
+	}
+
+	function handleError(error: Error) {
+		if (error.message.includes('EACCES')) {
+			log.warn('EACCES error - permission denied. You must run the program as admin.');
+		}
+
+		log.error(error, 'server error');
 	}
 
 	return { runServer };
