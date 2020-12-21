@@ -36,11 +36,14 @@ export function createServer(config: IConfig, log: Bunyan) {
 			handleAuthentication);
 
 		app.get('/iotsec/alertDoorOpened', handleAlertResponse, async (request: CustomRequest, response) => {
-			request.log.debug('processing request...');
-
 			const { runAlerterAsync } = createAlerter(config, request.log);
 
 			await runAlerterAsync();
+		});
+
+		app.get('/config', (request: CustomRequest, response: Response) => {
+			response.json(config);
+			response.end();
 		});
 
 		app.use(handleError);
@@ -52,6 +55,8 @@ export function createServer(config: IConfig, log: Bunyan) {
 	{
 		request.log = log.child({ traceId: uuid() }, true);
 
+		request.log.info({ request: getRequestInfo(request, null) });
+
 		next();
 	}
 
@@ -62,7 +67,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 	): Promise<void> {
 		const shouldTarpit = isTarPitCandidate(request);
 		if (shouldTarpit) {
-			request.log.info({ request: getRequestInfo(request, null) }, 'delaying response');
+			request.log.info('delaying response');
 
 			const timeBeforeTarpit = Date.now();
 			const shouldTarpit = await maybeTarpitClientAsync(request);
