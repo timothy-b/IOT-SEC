@@ -1,13 +1,14 @@
 {
     "compilerOptions": {
-        "outDir": "dist",
-        "module": "commonjs",
+        "downlevelIteration": true,
         "esModuleInterop": true,
-        "noImplicitAny": false,
-        "removeComments": true,
-        "preserveConstEnums": true,
+        "module": "commonjs",
         "moduleResolution": "node",
-        "noUnusedLocals": true
+        "noImplicitAny": false,
+        "noUnusedLocals": true,
+        "outDir": "dist",
+        "preserveConstEnums": true,
+        "removeComments": true
     },
     "include": [
         "src/**/*"

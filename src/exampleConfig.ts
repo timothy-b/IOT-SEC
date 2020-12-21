@@ -2,14 +2,16 @@ import { IConfig } from './types/IConfig';
 
 // fill in the values and rename to config.js
 const Config: IConfig = {
-	myPortableDevice: {
-		mac: '00:00:00:00:00:00',
-		name: 'my phone',
-	},
 	knownPortableDevices: [
+		{
+			mac: '00:00:00:00:00:00',
+			name: 'my phone',
+			emailAddress: '5550000000@messaging.carrier.com',
+		},
 		{
 			mac: '11:11:11:11:11:11',
 			name: 'my roomate',
+			emailAddress: '5551111111@messaging.carrier.com',
 		},
 	],
 	emailServer: {
@@ -22,13 +24,6 @@ const Config: IConfig = {
 		from: 'Firstname Lastname <user@example.com>',
 		ssl: true,
 		port: 465,
-	},
-	emailRecipients: {
-		intruder: ['5555555555@messaging.carrier.com'],
-		arrival: ['5555555555@messaging.carrier.com'],
-		departure: ['5555555555@messaging.carrier.com'],
-		doorOpen: ['5555555555@messaging.carrier.com'],
-		knownDevice: ['5555555555@messaging.carrier.com'],
 	},
 	okResponseBody: `
 	<!DOCTYPE "html">
@@ -61,6 +56,7 @@ const Config: IConfig = {
 				path: '/var/log/iotsec.log', // log INFO and above to a file
 			},
 		],
+		src: true,
 	},
 };
 

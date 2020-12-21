@@ -4,8 +4,10 @@ const Arpscan = require('arpscan');
 console.log(Arpscan);
 
 Arpscan(
-	function (err, data) {
-		if (err) console.error(data);
+	function(err, data) {
+		if (err) {
+			console.error(data);
+		}
 		console.log(JSON.stringify(data));
 	},
 	{

@@ -1,3 +1,6 @@
+deploy.cmd
+deploy.sh
+
 # config.js - don't upload your credentials
 config.js
 config.ts
@@ -8,6 +11,9 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Transpiled tests (no vanilla js jest tests allowed (¬‿¬))
+tests/*.test.js
 
 # Runtime data
 pids
