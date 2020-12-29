@@ -15,7 +15,7 @@ const Config: IConfig = {
 		},
 	],
 	localhost: {
-		port: 80
+		port: 80,
 	},
 	emailServer: {
 		user: 'user@example.com',

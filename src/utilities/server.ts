@@ -14,7 +14,6 @@ import { createAlerter } from './alerter';
 import { delayAsync } from './delay';
 
 export function createServer(config: IConfig, log: Bunyan) {
-
 	const leakyBucketByIp: {
 		[key: string]: SimpleLeakyBucket;
 	} = {};
@@ -30,16 +29,17 @@ export function createServer(config: IConfig, log: Bunyan) {
 	function runServer(): Application {
 		const app = express();
 
-		app.use('/',
-			addTracing,
-			handleTarpittingAsync,
-			handleAuthentication);
+		app.use('/', addTracing, handleTarpittingAsync, handleAuthentication);
 
-		app.get('/iotsec/alertDoorOpened', handleAlertResponse, async (request: CustomRequest, response) => {
-			const { runAlerterAsync } = createAlerter(config, request.log);
+		app.get(
+			'/iotsec/alertDoorOpened',
+			handleAlertResponse,
+			async (request: CustomRequest, response) => {
+				const { runAlerterAsync } = createAlerter(config, request.log);
 
-			await runAlerterAsync();
-		});
+				await runAlerterAsync();
+			}
+		);
 
 		app.get('/config', (request: CustomRequest, response: Response) => {
 			response.json(config);
@@ -51,8 +51,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		return app;
 	}
 
-	function addTracing(request: CustomRequest, response: Response, next: NextFunction)
-	{
+	function addTracing(request: CustomRequest, response: Response, next: NextFunction) {
 		request.log = log.child({ traceId: uuid() }, true);
 
 		request.log.info({ request: getRequestInfo(request, null) });
@@ -165,9 +164,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		);
 	}
 
-	async function maybeTarpitClientAsync(
-		request: CustomRequest
-	): Promise<boolean> {
+	async function maybeTarpitClientAsync(request: CustomRequest): Promise<boolean> {
 		const ipAddress = request.socket.remoteAddress;
 
 		if (!leakyBucketByIp.hasOwnProperty(ipAddress)) {
@@ -194,12 +191,20 @@ export function createServer(config: IConfig, log: Bunyan) {
 		}
 	}
 
-	function handleError(error: any, request: CustomRequest, response: Response, next: NextFunction) {		
+	function handleError(
+		error: any,
+		request: CustomRequest,
+		response: Response,
+		next: NextFunction
+	) {
 		if (error.message.includes('EACCES')) {
-			request.log.error(error, 'EACCES error - permission denied. You must run the program as admin.');
+			request.log.error(
+				error,
+				'EACCES error - permission denied. You must run the program as admin.'
+			);
 		} else {
 			request.log.error(error, 'server error');
-		}		
+		}
 
 		response.status(500);
 		response.json({ error: error.message });

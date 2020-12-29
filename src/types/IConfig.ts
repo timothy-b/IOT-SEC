@@ -13,7 +13,7 @@ export interface IConfig {
 	knownPortableDevices?: IDevice[];
 	localhost: {
 		port: number;
-	}
+	};
 	emailServer: {
 		user: string;
 		password: string;
