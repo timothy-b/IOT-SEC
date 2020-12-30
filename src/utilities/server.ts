@@ -1,4 +1,4 @@
-import * as Http from 'http';
+import express, { Application, NextFunction, Response } from 'express';
 import * as Bunyan from 'bunyan';
 import uuid from 'uuid-random';
 import {
@@ -8,6 +8,7 @@ import {
 	SimpleLeakyBucketOverflowError,
 } from './leakyBucket';
 import { IConfig } from '../types/IConfig';
+import { CustomRequest } from '../types/CustomRequest';
 import { isAuthenticated } from './basicAuth';
 import { createAlerter } from './alerter';
 import { delayAsync } from './delay';
@@ -25,40 +26,52 @@ export function createServer(config: IConfig, log: Bunyan) {
 		millisecondsPerDecrement: 1000,
 	};
 
-	function runServer() {
-		const server: Http.Server = Http.createServer(async (request, response) => {
-			const requestLog = log.child({ traceId: uuid() }, true);
+	function runServer(): Application {
+		const app = express();
 
-			// The forums mention a 5-second timeout before the webhook push is retried, so do this first.
-			// https://community.particle.io/t/electron-and-webhooks-esockettimedout/36413/7
-			const shouldProcessRequest = await processResponseAsync(request, response, requestLog);
+		app.use('/', addTracing, handleTarpittingAsync, handleAuthentication);
 
-			if (shouldProcessRequest) {
-				await processRequestAsync(request, requestLog);
+		app.post(
+			'/iotsec/alertDoorOpened',
+			handleAlertResponse,
+			async (request: CustomRequest, response) => {
+				const { runAlerterAsync } = createAlerter(config, request.log);
+
+				await runAlerterAsync();
 			}
-		})
-			.on('error', handleError)
-			.once('close', () => {
-				server.off('error', handleError);
-				log.info('server stopping');
-			});
+		);
 
-		return server;
+		app.get('/iotsec/config', (request: CustomRequest, response: Response) => {
+			response.json(config);
+			response.end();
+		});
+
+		app.use(handleError);
+
+		return app;
 	}
 
-	async function processResponseAsync(
-		request: Http.IncomingMessage,
-		response: Http.ServerResponse,
-		requestLog: Bunyan
-	): Promise<boolean> {
+	function addTracing(request: CustomRequest, response: Response, next: NextFunction) {
+		request.log = log.child({ traceId: uuid() }, true);
+
+		request.log.info({ request: getRequestInfo(request, null) });
+
+		next();
+	}
+
+	async function handleTarpittingAsync(
+		request: CustomRequest,
+		response: Response,
+		next: NextFunction
+	): Promise<void> {
 		const shouldTarpit = isTarPitCandidate(request);
 		if (shouldTarpit) {
-			requestLog.info({ request: getRequestInfo(request, null) }, 'delaying response');
+			request.log.info('delaying response');
 
 			const timeBeforeTarpit = Date.now();
-			const shouldTarpit = await maybeTarpitClientAsync(request, requestLog);
+			const shouldTarpit = await maybeTarpitClientAsync(request);
 			if (shouldTarpit) {
-				requestLog.info(`delayed for ${(Date.now() - timeBeforeTarpit) / 1000} seconds`);
+				request.log.info(`delayed for ${(Date.now() - timeBeforeTarpit) / 1000} seconds`);
 
 				response.writeHead(429);
 
@@ -70,16 +83,22 @@ export function createServer(config: IConfig, log: Bunyan) {
 					response.write('a');
 					await delayAsync(10_000);
 				}
-				requestLog.debug(
+				request.log.debug(
 					`delayed and tarpitted for ${(Date.now() - timeBeforeTarpit) / 1000} seconds`
 				);
 				response.end();
 			}
 			response.writeHead(404);
 			response.end();
-			return false;
+			return;
 		}
 
+		next();
+	}
+
+	// The forums mention a 5-second timeout before the webhook push is retried, so do this first.
+	// https://community.particle.io/t/electron-and-webhooks-esockettimedout/36413/7
+	function handleAlertResponse(request: CustomRequest, response: Response, next: NextFunction) {
 		let body = '';
 		const appendBody = () => {
 			body += request.read();
@@ -87,7 +106,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		request.on('readable', appendBody);
 
 		request.once('end', () => {
-			requestLog.info(
+			request.log.info(
 				{
 					request: getRequestInfo(request, body),
 				},
@@ -100,34 +119,26 @@ export function createServer(config: IConfig, log: Bunyan) {
 		response.writeHead(200, { 'Content-Type': 'text/html' });
 		response.write(config.okResponseBody);
 		response.end();
-
-		return true;
+		next();
 	}
 
-	async function processRequestAsync(
-		request: Http.IncomingMessage,
-		requestLog: Bunyan
-	): Promise<void> {
-		requestLog.info('processing request...');
-		if (request.method !== 'POST') {
-			return;
-		}
+	function handleAuthentication(request: CustomRequest, response: Response, next: NextFunction) {
+		request.log.debug('authenticating...');
 
-		requestLog.debug('authenticating...');
 		if (
 			config.basicAuthentication.enabled &&
-			!isAuthenticated(config, request.headers.authorization, requestLog)
+			!isAuthenticated(config, request.headers.authorization)
 		) {
-			requestLog.warn("not auth'd");
+			request.log.error("not auth'd");
+			response.writeHead(401);
+			response.end("not auth'd");
 			return;
 		}
 
-		const { runAlerterAsync } = createAlerter(config, requestLog);
-
-		await runAlerterAsync();
+		next();
 	}
 
-	function getRequestInfo(request: Http.IncomingMessage, body: string) {
+	function getRequestInfo(request: CustomRequest, body: string) {
 		return {
 			ip: request.socket.remoteAddress,
 			ipVersion: request.socket.remoteFamily,
@@ -141,18 +152,19 @@ export function createServer(config: IConfig, log: Bunyan) {
 		};
 	}
 
-	function isTarPitCandidate(request: Http.IncomingMessage): boolean {
-		return !(
-			request.url === '/' ||
-			request.url === '/favicon.ico' ||
-			(request.url === '/iotsec/alertDoorOpened' && request.headers.authorization !== null)
-		);
+	function isTarPitCandidate(request: CustomRequest): boolean {
+		// TODO: get this from the Express routes programmatically.
+		const mappedUrls = new Set([
+			'/',
+			'/favicon.ico',
+			'/iotsec/alertDoorOpened',
+			'/iotsec/config',
+		]);
+
+		return !mappedUrls.has(request.url);
 	}
 
-	async function maybeTarpitClientAsync(
-		request: Http.IncomingMessage,
-		requestLog: Bunyan
-	): Promise<boolean> {
+	async function maybeTarpitClientAsync(request: CustomRequest): Promise<boolean> {
 		const ipAddress = request.socket.remoteAddress;
 
 		if (!leakyBucketByIp.hasOwnProperty(ipAddress)) {
@@ -170,7 +182,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			return await leakyBucketByIp[ipAddress].incrementAsync();
 		} catch (e) {
 			if (e instanceof SimpleLeakyBucketOverflowError) {
-				requestLog.warn(e);
+				request.log.warn(e);
 				await delayAsync(600_000);
 				return true;
 			}
@@ -179,12 +191,25 @@ export function createServer(config: IConfig, log: Bunyan) {
 		}
 	}
 
-	function handleError(error: Error) {
+	function handleError(
+		error: any,
+		request: CustomRequest,
+		response: Response,
+		next: NextFunction
+	) {
 		if (error.message.includes('EACCES')) {
-			log.warn('EACCES error - permission denied. You must run the program as admin.');
+			request.log.error(
+				error,
+				'EACCES error - permission denied. You must run the program as admin.'
+			);
+		} else {
+			request.log.error(error, 'server error');
 		}
 
-		log.error(error, 'server error');
+		response.status(500);
+		response.json({ error: error.message });
+
+		next(error);
 	}
 
 	return { runServer };

@@ -7,10 +7,8 @@ function main() {
 	const { runServer } = createServer(Config, log);
 	const server = runServer();
 
-	server.listen(80);
-	if (server.listening) {
-		log.info('Server is listening');
-	}
+	const { port } = Config.localhost;
+	server.listen(port, () => log.info(`Server is listening on port ${port}`));
 }
 
 main();

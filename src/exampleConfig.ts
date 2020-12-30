@@ -14,6 +14,9 @@ const Config: IConfig = {
 			emailAddress: '5551111111@messaging.carrier.com',
 		},
 	],
+	localhost: {
+		port: 80,
+	},
 	emailServer: {
 		user: 'user@example.com',
 		password: 'password',
