@@ -1,11 +1,6 @@
-import * as Bunyan from 'bunyan';
 import { IConfig } from '../types/IConfig';
 
-export function isAuthenticated(
-	config: IConfig,
-	authorizationHeader: string,
-	log: Bunyan
-): boolean {
+export function isAuthenticated(config: IConfig, authorizationHeader: string): boolean {
 	const header = authorizationHeader || ''; // get the header
 
 	const token = header.split(/\s+/).pop() || ''; // and the encoded auth token

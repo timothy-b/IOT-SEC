@@ -31,7 +31,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 
 		app.use('/', addTracing, handleTarpittingAsync, handleAuthentication);
 
-		app.get(
+		app.post(
 			'/iotsec/alertDoorOpened',
 			handleAlertResponse,
 			async (request: CustomRequest, response) => {
@@ -41,7 +41,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			}
 		);
 
-		app.get('/config', (request: CustomRequest, response: Response) => {
+		app.get('/iotsec/config', (request: CustomRequest, response: Response) => {
 			response.json(config);
 			response.end();
 		});
@@ -123,18 +123,14 @@ export function createServer(config: IConfig, log: Bunyan) {
 	}
 
 	function handleAuthentication(request: CustomRequest, response: Response, next: NextFunction) {
-		request.log.info('processing request...');
-		if (request.method !== 'POST') {
-			return;
-		}
-
 		request.log.debug('authenticating...');
 
 		if (
 			config.basicAuthentication.enabled &&
-			!isAuthenticated(config, request.headers.authorization, request.log)
+			!isAuthenticated(config, request.headers.authorization)
 		) {
 			request.log.error("not auth'd");
+			response.writeHead(401);
 			response.end("not auth'd");
 			return;
 		}
@@ -157,11 +153,15 @@ export function createServer(config: IConfig, log: Bunyan) {
 	}
 
 	function isTarPitCandidate(request: CustomRequest): boolean {
-		return !(
-			request.url === '/' ||
-			request.url === '/favicon.ico' ||
-			(request.url === '/iotsec/alertDoorOpened' && request.headers.authorization !== null)
-		);
+		// TODO: get this from the Express routes programmatically.
+		const mappedUrls = new Set([
+			'/',
+			'/favicon.ico',
+			'/iotsec/alertDoorOpened',
+			'/iotsec/config',
+		]);
+
+		return !mappedUrls.has(request.url);
 	}
 
 	async function maybeTarpitClientAsync(request: CustomRequest): Promise<boolean> {
