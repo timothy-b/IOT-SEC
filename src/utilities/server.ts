@@ -1,4 +1,4 @@
-import express, { Application, NextFunction, Response } from 'express';
+import express, { Application, Express, NextFunction, Response } from 'express';
 import * as Bunyan from 'bunyan';
 import uuid from 'uuid-random';
 import {
@@ -29,7 +29,13 @@ export function createServer(config: IConfig, log: Bunyan) {
 	function runServer(): Application {
 		const app = express();
 
-		app.use('/', addTracing, handleTarpittingAsync, handleAuthentication);
+		app.use(
+			'/',
+			addTracing,
+			async (req, res, next) =>
+				await handleTarpittingAsync(req as CustomRequest, res, next, getPathsFromApp(app)),
+			handleAuthentication
+		);
 
 		app.post(
 			'/iotsec/alertDoorOpened',
@@ -53,6 +59,12 @@ export function createServer(config: IConfig, log: Bunyan) {
 		return app;
 	}
 
+	function getPathsFromApp(app: Express): Set<string> {
+		return new Set(
+			app._router.stack.filter(l => typeof l.route !== 'undefined').map(l => l.route.path)
+		);
+	}
+
 	async function quickScanAsync(request: CustomRequest, response: Response) {
 		const { quickScanAsync } = createAlerter(config, request.log);
 
@@ -73,9 +85,10 @@ export function createServer(config: IConfig, log: Bunyan) {
 	async function handleTarpittingAsync(
 		request: CustomRequest,
 		response: Response,
-		next: NextFunction
+		next: NextFunction,
+		routes: Set<string>
 	): Promise<void> {
-		const shouldTarpit = isTarPitCandidate(request);
+		const shouldTarpit = isTarPitCandidate(request, routes);
 		if (shouldTarpit) {
 			request.log.info('delaying response');
 
@@ -163,17 +176,11 @@ export function createServer(config: IConfig, log: Bunyan) {
 		};
 	}
 
-	function isTarPitCandidate(request: CustomRequest): boolean {
-		// TODO: get this from the Express routes programmatically.
-		const mappedUrls = new Set([
-			'/',
-			'/favicon.ico',
-			'/iotsec/alertDoorOpened',
-			'/iotsec/config',
-			'/iotsec/quickScan',
-		]);
-
-		return !mappedUrls.has(request.url);
+	function isTarPitCandidate(request: CustomRequest, routes: Set<string>): boolean {
+		return !routes
+			.add('/')
+			.add('/favicon.ico')
+			.has(request.url);
 	}
 
 	async function maybeTarpitClientAsync(request: CustomRequest): Promise<boolean> {
