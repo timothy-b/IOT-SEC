@@ -39,6 +39,16 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		await sendSummaryMessagesAsync(initialMacs, arrivedMacs, departedMacs);
 	}
 
+	async function quickScanAsync(): Promise<string> {
+		const knownDevices = await scanForKnownDevicesAsync();
+
+		if (knownDevices.length === 0) {
+			return 'nobody home';
+		}
+
+		return `home: ${knownDevices.map(d => d.name).join(', ')}`;
+	}
+
 	async function pollForDevicePresenceTransitionsAsync(
 		initialMacs: Set<string>
 	): Promise<{ arrivedMacs: Set<string>; departedMacs: Set<string> }> {
@@ -148,8 +158,8 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 
 	function buildAwaySummaryMessage(
 		homeMacs: Set<string>,
-		arrivedMacs: Set<string>,
-		departedMacs: Set<string>
+		arrivedMacs: Set<string> = new Set(),
+		departedMacs: Set<string> = new Set()
 	): string {
 		const lines = [];
 
@@ -213,5 +223,5 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		}
 	}
 
-	return { runAlerterAsync };
+	return { runAlerterAsync, quickScanAsync };
 }

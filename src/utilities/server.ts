@@ -46,9 +46,20 @@ export function createServer(config: IConfig, log: Bunyan) {
 			response.end();
 		});
 
+		app.get('/iotsec/quickScan', quickScanAsync);
+
 		app.use(handleError);
 
 		return app;
+	}
+
+	async function quickScanAsync(request: CustomRequest, response: Response) {
+		const { quickScanAsync } = createAlerter(config, request.log);
+
+		const message = await quickScanAsync();
+
+		response.write(message);
+		response.end();
 	}
 
 	function addTracing(request: CustomRequest, response: Response, next: NextFunction) {
@@ -159,6 +170,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			'/favicon.ico',
 			'/iotsec/alertDoorOpened',
 			'/iotsec/config',
+			'/iotsec/quickScan',
 		]);
 
 		return !mappedUrls.has(request.url);
