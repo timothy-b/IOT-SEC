@@ -4,7 +4,7 @@ class WifiManager {
 		WifiManager(WifiManager const&) = delete;
         void operator=(WifiManager const&) = delete;
         WifiManager();
-        static void Setup();
+        static void Setup(boolean shouldConnectToParticleCloud);
         static void Loop();
         static void EnablePublishDebugging();
         static void EnableSerialDebugging();
@@ -24,6 +24,7 @@ class WifiManager {
         static bool s_isSerialDebuggingEnabled;
         static bool s_isServerDebuggingEnabled;
         static bool s_isInitialized;
+        static bool s_shouldConnectToParticleCloud;
 
         static void Initialize() {
             s_wifiState = WifiManager::WifiState::WIFI_STATE_NOT_CONNECTED;
@@ -33,5 +34,6 @@ class WifiManager {
             s_isSerialDebuggingEnabled = false;
             s_isPublishDebuggingEnabled = false;
             s_isInitialized = true;
+            s_shouldConnectToParticleCloud = false;
         }
 };

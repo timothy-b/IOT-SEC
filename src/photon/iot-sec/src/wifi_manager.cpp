@@ -2,9 +2,11 @@
 #include "Particle.h"
 #include "wifi_manager.h"
 
-void WifiManager::Setup() {
+void WifiManager::Setup(boolean shouldConnectToParticleCloud) {
+	s_shouldConnectToParticleCloud = shouldConnectToParticleCloud;
+
 	if (s_isSerialDebuggingEnabled)
-		Serial.begin(9600);
+		Serial.begin();
 
 	WiFi.on();
 }
@@ -13,13 +15,16 @@ void WifiManager::Loop() {
 	switch(s_wifiState) {
 	case WIFI_STATE_NOT_CONNECTED:
 		if (s_isSerialDebuggingEnabled)
-			Serial.println("connecting");
+			Serial.println("not connected");
 
 		WiFi.connect();
 		s_wifiState = WIFI_STATE_CONNECTING;
 		break;
 
 	case WIFI_STATE_CONNECTING:
+		if (s_isSerialDebuggingEnabled)
+			Serial.println("connecting");
+
 		if (WiFi.ready())
 			s_wifiState = WIFI_STATE_CONNECTED;
 
@@ -32,8 +37,10 @@ void WifiManager::Loop() {
 		if (s_isSerialDebuggingEnabled)
 			Serial.println("connected");
 
-		// Also connect to the Particle cloud.
-		Particle.connect();
+		if (s_shouldConnectToParticleCloud) {
+			// Also connect to the Particle cloud.
+			Particle.connect();
+		}
 
 		s_wifiState = WIFI_STATE_RUNNING;
 
@@ -61,9 +68,9 @@ void WifiManager::Loop() {
 			if (s_isServerDebuggingEnabled) {
 				if (s_client.connect(s_serverAddr, s_serverPort)) {
 					if (s_isSerialDebuggingEnabled)
-						Serial.printlnf("sending seq=%d", s_sequenceId);
+						Serial.printlnf("sending seq=%lu", s_sequenceId);
 
-					s_client.printlnf("%d\n", s_sequenceId);
+					s_client.printlnf("%lu", s_sequenceId);
 					s_client.stop();
 				} else {
 					if (s_isSerialDebuggingEnabled)
@@ -71,7 +78,7 @@ void WifiManager::Loop() {
 				}
 			}
 
-			if (Particle.connected()) {
+			if (s_shouldConnectToParticleCloud && Particle.connected()) {
 				if (s_isSerialDebuggingEnabled && s_isPublishDebuggingEnabled) {
 					Serial.println("publishing event");
 					Particle.publish("WifiManager: connected.", "seq=" + s_sequenceId, PRIVATE);
@@ -113,6 +120,7 @@ bool WifiManager::s_isServerDebuggingEnabled = false;
 bool WifiManager::s_isSerialDebuggingEnabled = false;
 bool WifiManager::s_isPublishDebuggingEnabled = false;
 bool WifiManager::s_isInitialized = true;
+bool WifiManager::s_shouldConnectToParticleCloud = false;
 
 IPAddress WifiManager::s_serverAddr = IPAddress();
 int WifiManager::s_serverPort = 80;

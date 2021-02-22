@@ -1,9 +1,11 @@
 deploy.cmd
 deploy.sh
 
-# config.js - don't upload your credentials
+# secrets
 config.js
 config.ts
+src/photon/iot-sec/.vscode/settings.json
+src/photon/iot-sec/src/secrets.h
 
 # Logs
 logs
