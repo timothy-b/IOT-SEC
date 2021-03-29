@@ -29,12 +29,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	}, {}) as { string: IDevice };
 
 	async function runAlerterAsync() {
-		const initialKnownDevices = await scanForKnownDevicesAsync();
-		const initialMacs = new Set<string>(initialKnownDevices.map(d => d.mac));
-
-		const { arrivedMacs, departedMacs } = await pollForDevicePresenceTransitionsAsync(
-			initialMacs
-		);
+		const { initialMacs, arrivedMacs, departedMacs } = await pollForDevicePresenceTransitionsAsync();
 
 		await sendSummaryMessagesAsync(initialMacs, arrivedMacs, departedMacs);
 	}
@@ -49,9 +44,22 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		return `home: ${knownDevices.map(d => d.name).join(', ')}`;
 	}
 
-	async function pollForDevicePresenceTransitionsAsync(
-		initialMacs: Set<string>
-	): Promise<{ arrivedMacs: Set<string>; departedMacs: Set<string> }> {
+	async function pollForDevicePresenceTransitionsAsync()
+		: Promise<{ initialMacs: Set<string>; arrivedMacs: Set<string>; departedMacs: Set<string> }> {
+
+		const initialPollingLengthInSeconds = 3;
+		const initialPollingIntervalInSeconds = 1;
+		let remainingInitialPolls = initialPollingLengthInSeconds / initialPollingIntervalInSeconds;
+		const initialMacs = new Set<string>();
+		do {
+			const initialKnownDevices = await scanForKnownDevicesAsync();
+
+			for (const mac of initialKnownDevices.map(d => d.mac))
+				initialMacs.add(mac);
+
+		} while (remainingInitialPolls-- > 0);
+
+		// TODO: apply smoothing function for arrivedMacs and departedMacs
 		const arrivedMacs = new Set<string>();
 		const departedMacs = new Set<string>();
 		const pollingLengthInSeconds = 120;
@@ -80,9 +88,9 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 					]);
 				}
 			}
-		} while (--remainingPolls > 0);
+		} while (remainingPolls-- > 0);
 
-		return { arrivedMacs, departedMacs };
+		return { initialMacs, arrivedMacs, departedMacs };
 	}
 
 	async function sendSummaryMessagesAsync(
