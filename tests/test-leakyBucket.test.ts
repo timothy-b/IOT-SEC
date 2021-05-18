@@ -1,8 +1,5 @@
 import {
-	SimpleLeakyBucket,
-	SimpleLeakyBucketOptions,
-	SimpleLeakyBucketEventKinds,
-	SimpleLeakyBucketOverflowError,
+	SimpleLeakyBucket
 } from '../src/utilities/leakyBucket';
 import { delayAsync } from '../src/utilities/delay';
 

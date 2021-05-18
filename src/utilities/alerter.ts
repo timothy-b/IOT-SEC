@@ -47,17 +47,21 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	async function pollForDevicePresenceTransitionsAsync()
 		: Promise<{ initialMacs: Set<string>; arrivedMacs: Set<string>; departedMacs: Set<string> }> {
 
-		const initialPollingLengthInSeconds = 3;
-		const initialPollingIntervalInSeconds = 1;
-		let remainingInitialPolls = initialPollingLengthInSeconds / initialPollingIntervalInSeconds;
+		let remainingPollCount = 3;
+		const pollIntervalMilliseconds = 300;
+		const pollPromises: Promise<IDevice[]>[] = [];
+		while (remainingPollCount-- > 0) {
+			pollPromises.push(scanForKnownDevicesAsync());
+	
+			await delayAsync(pollIntervalMilliseconds);
+		};
+	
 		const initialMacs = new Set<string>();
-		do {
-			const initialKnownDevices = await scanForKnownDevicesAsync();
-
-			for (const mac of initialKnownDevices.map(d => d.mac))
+		for (const promise of pollPromises) {
+			for (const mac of (await promise).map(d => d.mac)) {
 				initialMacs.add(mac);
-
-		} while (remainingInitialPolls-- > 0);
+			}
+		}
 
 		// TODO: apply smoothing function for arrivedMacs and departedMacs
 		const arrivedMacs = new Set<string>();
