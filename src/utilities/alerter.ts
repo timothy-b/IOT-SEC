@@ -1,9 +1,10 @@
 import * as Bunyan from 'bunyan';
-import { sendEmailAsync } from './email';
-import { delayAsync } from './delay';
-import { IConfig, IEmailConfig, AlertType } from '../types/IConfig';
+import { AlertType, IConfig, IEmailConfig } from '../types/IConfig';
 import { IDevice } from '../types/IDevice';
+import { delayAsync } from './delay';
+import { sendEmailAsync } from './email';
 import { arpscanDevicesAsync } from './scanner';
+import { StateSmoothingFunctionMachine } from './stateSmoothingFunctionMachine';
 
 const defaultAlertMessages: { [alertType in AlertType]: string } = {
 	intruder: 'The fortress is in peril.',
@@ -29,9 +30,14 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	}, {}) as { string: IDevice };
 
 	async function runAlerterAsync() {
-		const { initialMacs, arrivedMacs, departedMacs } = await pollForDevicePresenceTransitionsAsync();
+		const {
+			homeMacs,
+			awayMacs,
+			arrivedMacs,
+			departedMacs,
+		} = await pollForDevicePresenceTransitionsAsync();
 
-		await sendSummaryMessagesAsync(initialMacs, arrivedMacs, departedMacs);
+		await sendSummaryMessagesAsync(homeMacs, awayMacs, arrivedMacs, departedMacs);
 	}
 
 	async function quickScanAsync(): Promise<string> {
@@ -44,72 +50,86 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		return `home: ${knownDevices.map(d => d.name).join(', ')}`;
 	}
 
-	async function pollForDevicePresenceTransitionsAsync()
-		: Promise<{ initialMacs: Set<string>; arrivedMacs: Set<string>; departedMacs: Set<string> }> {
+	type DeviceState = 'absent' | 'present';
 
-		let remainingPollCount = 3;
-		const pollIntervalMilliseconds = 300;
-		const pollPromises: Promise<IDevice[]>[] = [];
-		while (remainingPollCount-- > 0) {
-			pollPromises.push(scanForKnownDevicesAsync());
-	
-			await delayAsync(pollIntervalMilliseconds);
-		};
-	
-		const initialMacs = new Set<string>();
-		for (const promise of pollPromises) {
-			for (const mac of (await promise).map(d => d.mac)) {
-				initialMacs.add(mac);
-			}
-		}
+	const DeviceStates: { [deviceState in DeviceState]: DeviceState } = {
+		absent: 'absent',
+		present: 'present',
+	};
 
-		// TODO: apply smoothing function for arrivedMacs and departedMacs
+	async function pollForDevicePresenceTransitionsAsync(): Promise<{
+		homeMacs: Set<string>;
+		awayMacs: Set<string>;
+		arrivedMacs: Set<string>;
+		departedMacs: Set<string>;
+	}> {
 		const arrivedMacs = new Set<string>();
 		const departedMacs = new Set<string>();
-		const pollingLengthInSeconds = 120;
+		const smoother = new StateSmoothingFunctionMachine<DeviceState>({
+			trackedItems: config.knownPortableDevices.map(d => ({
+				key: d.mac,
+				onFirstTransition: async newStateName => {
+					let alertType: AlertType;
+					switch (newStateName) {
+						case DeviceStates.absent:
+							alertType = alertTypes.departure;
+							departedMacs.add(d.mac);
+							break;
+						case DeviceStates.present:
+							alertType = alertTypes.arrival;
+							arrivedMacs.add(d.mac);
+							break;
+						default:
+							throw Error(`Unhandled state" ${newStateName}`);
+					}
+
+					await sendSimpleAlertAsync(alertType, [
+						getKnownDeviceByMac(d.mac).emailAddress,
+					]);
+				},
+			})),
+			transitionWindowSize: 3,
+		});
+
+		let remainingPollCount = 15;
 		const pollingIntervalInSeconds = 5;
-		let remainingPolls = pollingLengthInSeconds / pollingIntervalInSeconds;
-		do {
+		while (remainingPollCount-- > 0) {
 			await delayAsync(pollingIntervalInSeconds * 1000);
 
 			const detectedDevices = await scanForKnownDevicesAsync();
 			const detectedMacs = new Set(detectedDevices.map(d => d.mac));
 
-			for (const mac of detectedMacs) {
-				if (!initialMacs.has(mac) && !arrivedMacs.has(mac)) {
-					arrivedMacs.add(mac);
-					await sendSimpleAlertAsync(alertTypes.arrival, [
-						getKnownDeviceByMac(mac).emailAddress,
-					]);
-				}
+			for (const mac of config.knownPortableDevices.map(d => d.mac)) {
+				smoother.addStateStep(
+					mac,
+					detectedMacs.has(mac) ? DeviceStates.present : DeviceStates.absent
+				);
 			}
+		}
 
-			for (const mac of initialMacs) {
-				if (!detectedMacs.has(mac) && !departedMacs.has(mac)) {
-					departedMacs.add(mac);
-					await sendSimpleAlertAsync(alertTypes.departure, [
-						getKnownDeviceByMac(mac).emailAddress,
-					]);
-				}
+		const nonTransitionedDevices = smoother.getNonTransitionedTrackedItems();
+		const homeMacs = new Set<string>();
+		const awayMacs = new Set<string>();
+		for (const device of nonTransitionedDevices) {
+			if (device.state === DeviceStates.absent) {
+				awayMacs.add(device.key);
+			} else {
+				// If they went back-and-forth, then they're practically home.
+				homeMacs.add(device.key);
 			}
-		} while (remainingPolls-- > 0);
+		}
 
-		return { initialMacs, arrivedMacs, departedMacs };
+		return { homeMacs, awayMacs, arrivedMacs, departedMacs };
 	}
 
 	async function sendSummaryMessagesAsync(
-		initialMacs: Set<string>,
+		homeMacs: Set<string>,
+		awayMacs: Set<string>,
 		arrivedMacs: Set<string>,
 		departedMacs: Set<string>
 	) {
-		const nonTravellingMacs = config.knownPortableDevices
-			.map(d => d.mac)
-			.filter(mac => !arrivedMacs.has(mac) && !departedMacs.has(mac));
-		const awayMacs = new Set<string>(nonTravellingMacs.filter(mac => !initialMacs.has(mac)));
-		const homeMacs = new Set<string>(nonTravellingMacs.filter(mac => initialMacs.has(mac)));
-
 		if (arrivedMacs.size === 0 && departedMacs.size === 0) {
-			if (initialMacs.size === 0) {
+			if (homeMacs.size === 0) {
 				await sendSimpleAlertAsync(
 					alertTypes.intruder,
 					config.knownPortableDevices.map(d => d.emailAddress)

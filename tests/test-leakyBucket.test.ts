@@ -1,9 +1,5 @@
-import {
-	SimpleLeakyBucket
-} from '../src/utilities/leakyBucket';
 import { delayAsync } from '../src/utilities/delay';
-
-console.log('asdf');
+import { SimpleLeakyBucket } from '../src/utilities/leakyBucket';
 
 test('does not block under burst capacity', async () => {
 	// arrange

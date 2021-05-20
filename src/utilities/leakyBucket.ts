@@ -1,3 +1,6 @@
+// This isn't a simple solution, this is a fun solution :)
+// Adapted from https://rclayton.silvrback.com/custom-errors-in-node-js
+
 import { EventEmitter } from 'events';
 
 export interface SimpleLeakyBucketOptions {
@@ -15,7 +18,6 @@ export enum SimpleLeakyBucketEventKinds {
 	empty = 'empty',
 }
 
-// Adapted from https://rclayton.silvrback.com/custom-errors-in-node-js
 export class SimpleLeakyBucketOverflowError extends Error {
 	constructor(message: any) {
 		super(message);

@@ -30,5 +30,4 @@ async function scanForKnownDevicesAsync() {
     }
 
     console.log(initialMacs);
-
 })();
