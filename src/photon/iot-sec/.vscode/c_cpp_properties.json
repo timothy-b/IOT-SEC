@@ -4,8 +4,8 @@
             "name": "Win32",
             "includePath": [
                 "${workspaceFolder}/**",
-                "C:\\Users\\timothy\\.particle\\toolchains\\deviceOS\\2.0.1\\**",
-                "C:\\Users\\timothy\\.particle\\toolchains\\gcc-arm\\9.2.1\\arm-none-eabi\\include\\c++\\9.2.1\\arm-none-eabi\\**"
+                "C:\\Users\\timme\\.particle\\toolchains\\deviceOS\\2.1.0\\**",
+                "C:\\Users\\timme\\.particle\\toolchains\\gcc-arm\\9.2.1\\arm-none-eabi\\include\\c++\\9.2.1\\arm-none-eabi\\**"
             ],
             "defines": [
                 "_DEBUG",
@@ -13,7 +13,7 @@
                 "_UNICODE"
             ],
             "intelliSenseMode": "gcc-arm",
-            "compilerPath": "C:\\Users\\timothy\\.particle\\toolchains\\gcc-arm\\9.2.1\\bin\\arm-none-eabi-gcc"
+            "compilerPath": "C:\\Users\\timme\\.particle\\toolchains\\gcc-arm\\9.2.1\\bin\\arm-none-eabi-gcc"
         }
     ],
     "version": 4

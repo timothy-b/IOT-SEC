@@ -2,7 +2,8 @@
 #include "Particle.h"
 #include "wifi_manager.h"
 
-void WifiManager::Setup(boolean shouldConnectToParticleCloud) {
+void WifiManager::Setup(boolean shouldConnectToParticleCloud)
+{
 	s_shouldConnectToParticleCloud = shouldConnectToParticleCloud;
 
 	if (s_isSerialDebuggingEnabled)
@@ -11,8 +12,10 @@ void WifiManager::Setup(boolean shouldConnectToParticleCloud) {
 	WiFi.on();
 }
 
-void WifiManager::Loop() {
-	switch(s_wifiState) {
+void WifiManager::Loop()
+{
+	switch (s_wifiState)
+	{
 	case WIFI_STATE_NOT_CONNECTED:
 		if (s_isSerialDebuggingEnabled)
 			Serial.println("not connected");
@@ -37,7 +40,8 @@ void WifiManager::Loop() {
 		if (s_isSerialDebuggingEnabled)
 			Serial.println("connected");
 
-		if (s_shouldConnectToParticleCloud) {
+		if (s_shouldConnectToParticleCloud)
+		{
 			// Also connect to the Particle cloud.
 			Particle.connect();
 		}
@@ -48,7 +52,8 @@ void WifiManager::Loop() {
 		break;
 
 	case WIFI_STATE_RUNNING:
-		if (!WiFi.ready()) {
+		if (!WiFi.ready())
+		{
 			if (s_isSerialDebuggingEnabled)
 				Serial.println("Wifi disconnected during connected state");
 
@@ -59,33 +64,46 @@ void WifiManager::Loop() {
 		}
 
 		// Running with WiFi enabled here.
-		if (millis() - s_lastSendTime >=  c_sendPeriodMs) {
+		if (millis() - s_lastSendTime >= c_sendPeriodMs)
+		{
 			s_lastSendTime = millis();
 
-			if (s_isSerialDebuggingEnabled)
-				Serial.println("about to connect");
+			if (s_isServerDebuggingEnabled)
+			{
+				if (s_isSerialDebuggingEnabled)
+					Serial.println("about to connect");
 
-			if (s_isServerDebuggingEnabled) {
-				if (s_client.connect(s_serverAddr, s_serverPort)) {
+				if (s_client.connect(s_serverAddr, s_serverPort))
+				{
 					if (s_isSerialDebuggingEnabled)
 						Serial.printlnf("sending seq=%lu", s_sequenceId);
 
 					s_client.printlnf("%lu", s_sequenceId);
 					s_client.stop();
-				} else {
+				}
+				else
+				{
 					if (s_isSerialDebuggingEnabled)
 						Serial.println("connection failed");
 				}
 			}
 
-			if (s_shouldConnectToParticleCloud && Particle.connected()) {
-				if (s_isSerialDebuggingEnabled && s_isPublishDebuggingEnabled) {
-					Serial.println("publishing event");
+			if (s_shouldConnectToParticleCloud)
+			{
+				if (Particle.connected())
+				{
+					if (s_isSerialDebuggingEnabled)
+						Serial.println("publishing event");
+
 					Particle.publish("WifiManager: connected.", "seq=" + s_sequenceId, PRIVATE);
+
+					if (s_isSerialDebuggingEnabled)
+						Serial.println("publishing event");
 				}
-			} else {
-				if (s_isSerialDebuggingEnabled)
-					Serial.println("not connected to the cloud, skipping publishing event");
+				else
+				{
+					Serial.println("skipping publishing event, not connected to the cloud");
+				}
 			}
 
 			s_sequenceId++;
@@ -99,15 +117,18 @@ void WifiManager::Loop() {
 	Particle.process();
 }
 
-void WifiManager::EnablePublishDebugging() {
+void WifiManager::EnablePublishDebugging()
+{
 	s_isPublishDebuggingEnabled = true;
 }
 
-void WifiManager::EnableSerialDebugging() {
-	s_isSerialDebuggingEnabled = false;
+void WifiManager::EnableSerialDebugging()
+{
+	s_isSerialDebuggingEnabled = true;
 }
 
-void WifiManager::EnableServerDebugging(uint8_t firstOctet, uint8_t secondOctet, uint8_t thirdOcted, uint8_t fourthOctet, int portNumber) {
+void WifiManager::EnableServerDebugging(uint8_t firstOctet, uint8_t secondOctet, uint8_t thirdOcted, uint8_t fourthOctet, int portNumber)
+{
 	s_serverAddr = IPAddress(firstOctet, secondOctet, thirdOcted, fourthOctet);
 	s_serverPort = portNumber;
 	s_isServerDebuggingEnabled = true;
