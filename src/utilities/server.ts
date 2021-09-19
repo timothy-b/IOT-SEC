@@ -1,17 +1,17 @@
-import express, { Application, Express, NextFunction, Response } from 'express';
 import * as Bunyan from 'bunyan';
+import express, { Application, Express, NextFunction, Response } from 'express';
 import uuid from 'uuid-random';
+import { CustomRequest } from '../types/CustomRequest';
+import { IConfig } from '../types/IConfig';
+import { createAlerter } from './alerter';
+import { isAuthenticated } from './basicAuth';
+import { delayAsync } from './delay';
 import {
 	SimpleLeakyBucket,
-	SimpleLeakyBucketOptions,
 	SimpleLeakyBucketEventKinds,
+	SimpleLeakyBucketOptions,
 	SimpleLeakyBucketOverflowError,
 } from './leakyBucket';
-import { IConfig } from '../types/IConfig';
-import { CustomRequest } from '../types/CustomRequest';
-import { isAuthenticated } from './basicAuth';
-import { createAlerter } from './alerter';
-import { delayAsync } from './delay';
 
 export function createServer(config: IConfig, log: Bunyan) {
 	const leakyBucketByIp: {
@@ -53,6 +53,12 @@ export function createServer(config: IConfig, log: Bunyan) {
 		});
 
 		app.get('/iotsec/quickScan', quickScanAsync);
+
+		// TODO: also make a request to the particle to make sure that it responds.
+		app.get('/iotsec/up', (request: CustomRequest, response: Response) => {
+			response.writeHead(200);
+			response.end();
+		});
 
 		app.use(handleError);
 
@@ -180,6 +186,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		return !routes
 			.add('/')
 			.add('/favicon.ico')
+			.add('/iotsec/up')
 			.has(request.url);
 	}
 
