@@ -7,6 +7,7 @@ export interface IEmailConfig {
 	from: string;
 	ssl: boolean;
 	port: number;
+	subject: string;
 }
 
 export interface IConfig {

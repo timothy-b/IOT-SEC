@@ -27,6 +27,7 @@ const Config: IConfig = {
 		from: 'Firstname Lastname <user@example.com>',
 		ssl: true,
 		port: 465,
+		subject: '',
 	},
 	okResponseBody: `
 	<!DOCTYPE "html">

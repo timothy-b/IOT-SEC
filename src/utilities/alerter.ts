@@ -1,6 +1,7 @@
 import * as Bunyan from 'bunyan';
-import { AlertType, IConfig, IEmailConfig } from '../types/IConfig';
+import { AlertType, IConfig } from '../types/IConfig';
 import { IDevice } from '../types/IDevice';
+import IEmail from '../types/IEmail';
 import { delayAsync } from './delay';
 import { sendEmailAsync } from './email';
 import { arpscanDevicesAsync } from './scanner';
@@ -17,11 +18,6 @@ const alertTypes = Object.keys(defaultAlertMessages).reduce(
 	(map, key) => ({ ...map, [key]: key }),
 	{}
 ) as { [alertType in AlertType]: AlertType };
-
-interface IEmail extends IEmailConfig {
-	text: string;
-	to: string;
-}
 
 export function createAlerter(config: IConfig, log: Bunyan) {
 	const portableDeviceByMac = config.knownPortableDevices.reduce((acc, cur) => {
