@@ -1,9 +1,9 @@
 const { promisify } = require('util');
-const Email = require('emailjs');
+const { SMTPClient } = require('emailjs');
 const Config = require('../dist/config.js');
 
 function sendEmail(email, config, callback) {
-	const connection = Email.server.connect(config.emailServer);
+	const connection = new SMTPClient(Config.default.emailServer);
 
 	connection.send(email, callback);
 }
