@@ -1,9 +1,8 @@
 import { FunctionalComponent, h } from 'preact';
 import { Route, Router } from 'preact-router';
 
-import Config from '../routes/config';
-import Status from '../routes/status';
-import NotFoundPage from '../routes/notfound';
+import Status from 'src/routes/Status';
+import NotFound from '../routes/NotFound';
 import Header from './header';
 
 const App: FunctionalComponent = () => {
@@ -12,8 +11,7 @@ const App: FunctionalComponent = () => {
 			<Header />
 			<Router>
 				<Route path="/" component={Status} />
-				<Route path="/config/" component={Config} />
-				<NotFoundPage default />
+				<NotFound default />
 			</Router>
 		</div>
 	);
