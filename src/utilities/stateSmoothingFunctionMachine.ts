@@ -68,7 +68,7 @@ class StateSmoothingFunctionMachine<TState extends string> {
 				this.state[key].initialState = lastStageStep;
 			} else if (
 				!this.state[key].hasTransitioned &&
-				lastStageStep != this.state[key].initialState
+				lastStageStep !== this.state[key].initialState
 			) {
 				this.state[key].hasTransitioned = true;
 				this.state[key].firstTransitionCallback(lastStageStep);
