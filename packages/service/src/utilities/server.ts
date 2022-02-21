@@ -48,7 +48,8 @@ export function createServer(config: IConfig, log: Bunyan) {
 		);
 
 		app.get('/iotsec/config', (request: CustomRequest, response: Response) => {
-			response.json(config);
+			const { bunyan, ...rest } = config;
+			response.json(rest);
 			response.end();
 		});
 
