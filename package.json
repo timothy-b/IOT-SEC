@@ -5,12 +5,9 @@
   "main": "dist/program.js",
   "dependencies": {
     "arpscan": "^0.6.0",
-    "async": "^2.6.0",
     "bunyan": "^1.8.12",
     "emailjs": "^3.7.0",
     "express": "^4.17.1",
-    "express-async-errors": "^3.1.1",
-    "npm": "^7.3.0",
     "uuid-random": "^1.3.2"
   },
   "devDependencies": {
@@ -36,7 +33,8 @@
   "scripts": {
     "build": "./node_modules/.bin/tsc",
     "watch": "./node_modules/.bin/tsc --watch",
-		"prepare": "husky install",
+    "depcheck": "npx depcheck",
+    "prepare": "husky install",
     "start": "node ./dist/program.js",
     "stop": "ps aux | grep node | grep iot-sec | awk '{ print $2 }' | xargs sudo kill",
     "lint": ".\\node_modules\\.bin\\eslint ./src/**/*.{js,ts} --ignore-pattern **/dist --ignore-pattern **/node_modules",
