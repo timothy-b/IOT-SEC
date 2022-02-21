@@ -11,5 +11,8 @@
     "security"
   ],
   "author": "Timothy Baumgartner",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "lerna": "^4.0.0"
+  }
 }
