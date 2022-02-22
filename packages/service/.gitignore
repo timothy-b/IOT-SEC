@@ -10,3 +10,6 @@ src/photon/iot-sec/src/secrets.h
 
 # build
 dist
+
+# db
+db.json
