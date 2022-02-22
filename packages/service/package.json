@@ -2,7 +2,11 @@
   "name": "iotsec-service",
   "version": "1.0.0",
   "description": "An IOT security system using a Particle Photon and a Raspberry Pi",
-  "main": "dist/program.js",
+	"type": "module",
+  "exports": "./dist/program.js",
+	"engines": {
+		"node": "^12.20.0 || ^14.13.1 || >=16.0.0"
+	},
   "dependencies": {
     "arpscan": "^0.6.0",
     "bunyan": "^1.8.12",

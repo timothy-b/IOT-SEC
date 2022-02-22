@@ -1,6 +1,6 @@
 import { createLogger } from 'bunyan';
-import Config from './config';
-import { createServer } from './utilities/server';
+import Config from './config.js';
+import { createServer } from './utilities/server.js';
 
 function main() {
 	const log = createLogger(Config.bunyan);
