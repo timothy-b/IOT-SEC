@@ -1,2 +1,2 @@
-import { createContext, h } from 'preact';
-export default createContext({ authHeader: '', setAuthHeader: (authHeader: string) => {} });
+import { createContext } from 'preact';
+export default createContext({ authHeader: '', setAuthHeader: () => {} });

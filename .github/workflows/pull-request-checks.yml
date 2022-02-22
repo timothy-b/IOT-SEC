@@ -1,0 +1,39 @@
+name: Pull request checks
+
+on: [push, pull_request]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [14.x]
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+
+      - name: Install service packages
+        run: npm --prefix ./packages/service ci
+
+      - name: Lint service
+        run: npm --prefix ./packages/service run lint
+
+      - name: Build service
+        run: npm --prefix ./packages/service run build
+
+      - name: Run service tests
+        run: npm --prefix ./packages/service run test
+
+      - name: Install client packages
+        run: npm --prefix ./packages/client ci
+
+      - name: Lint client
+        run: npm --prefix ./packages/client run lint
+
+      - name: Build client
+        run: npm --prefix ./packages/client run build
+
+      - name: Run client tests
+        run: npm --prefix ./packages/client run test
