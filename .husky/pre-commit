@@ -1,4 +1,4 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-npm run lint
+pushd .; cd client; npm run lint; popd; pushd .; cd service; npm run lint; popd;

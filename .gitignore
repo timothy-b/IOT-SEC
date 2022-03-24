@@ -1,12 +1,3 @@
-deploy.cmd
-deploy.sh
-
-# secrets
-config.js
-config.ts
-src/photon/iot-sec/.vscode/settings.json
-src/photon/iot-sec/src/secrets.h
-
 # Logs
 logs
 *.log

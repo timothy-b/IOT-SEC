@@ -5,7 +5,7 @@ export function isAuthenticated(config: IConfig, authorizationHeader: string): b
 
 	const token = header.split(/\s+/).pop() || ''; // and the encoded auth token
 
-	const auth = new Buffer(token, 'base64').toString(); // convert from base64
+	const auth = Buffer.from(token, 'base64').toString(); // convert from base64
 
 	const [username, password] = auth.split(/:/); // split on colon
 

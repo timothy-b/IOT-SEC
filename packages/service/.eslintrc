@@ -1,0 +1,18 @@
+{
+	"parser": "@typescript-eslint/parser",
+	"parserOptions": {
+		"sourceType": "module"
+	},
+	"rules": {
+		"@typescript-eslint/explicit-function-return-type": [0],
+		"@typescript-eslint/interface-name-prefix": [0],
+		"@typescript-eslint/no-empty-function": [0],
+		"quotes": ["error", "single", { "avoidEscape": true }],
+		"jsx-quotes": ["error", "prefer-double"],
+		"trailing-comma": "es5",
+		"ordered-imports": false,
+		"indent": ["error", "tab", { "SwitchCase": 1 }],
+		"arrow-parens": [0],
+		"object-literal-sort-keys": false
+	}
+}

@@ -1,0 +1,28 @@
+.Toaster {
+	position: fixed;
+	z-index: 1;
+	inset-block-end: 0;
+	inset-inline: 0;
+	padding-block-end: 5vh;
+
+	display: grid;
+	justify-items: center;
+	justify-content: right;
+	gap: 1vh;
+
+	pointer-events: none;
+}
+
+.toast {
+	color: white;
+	--_bg-lightness: 20%;
+
+	background: hsl(0 0% var(--_bg-lightness) / 90%);
+
+	max-inline-size: min(25ch, 90vw);
+	padding-block: 0.5ch;
+	padding-inline: 1ch;
+	border-radius: 3px;
+	font-size: 1rem;
+	margin-right: 50px;
+}

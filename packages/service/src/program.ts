@@ -1,9 +1,13 @@
 import { createLogger } from 'bunyan';
-import Config from './config';
-import { createServer } from './utilities/server';
+import Config from './config.js';
+import { createServer } from './utilities/server.js';
+import db from './utilities/db.js';
 
 function main() {
-	const log = createLogger(Config.bunyan);
+	const { bunyan, ...rest } = Config;
+	const log = createLogger(bunyan);
+	db.data = db.data || rest;
+	db.write();
 	const { runServer } = createServer(Config, log);
 	const server = runServer();
 

@@ -3,15 +3,15 @@ import express, { Application, Express, NextFunction, Response } from 'express';
 import uuid from 'uuid-random';
 import { CustomRequest } from '../types/CustomRequest';
 import { IConfig } from '../types/IConfig';
-import { createAlerter } from './alerter';
-import { isAuthenticated } from './basicAuth';
-import { delayAsync } from './delay';
+import { createAlerter } from './alerter.js';
+import { isAuthenticated } from './basicAuth.js';
+import { delayAsync } from './delay.js';
 import {
 	SimpleLeakyBucket,
 	SimpleLeakyBucketEventKinds,
 	SimpleLeakyBucketOptions,
 	SimpleLeakyBucketOverflowError,
-} from './leakyBucket';
+} from './leakyBucket.js';
 
 export function createServer(config: IConfig, log: Bunyan) {
 	const leakyBucketByIp: {
@@ -48,7 +48,8 @@ export function createServer(config: IConfig, log: Bunyan) {
 		);
 
 		app.get('/iotsec/config', (request: CustomRequest, response: Response) => {
-			response.json(config);
+			const { bunyan, ...rest } = config;
+			response.json(rest);
 			response.end();
 		});
 
