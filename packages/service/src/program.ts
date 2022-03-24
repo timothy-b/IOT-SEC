@@ -1,7 +1,7 @@
 import { createLogger } from 'bunyan';
-import Config from './config.js';
-import { createServer } from './utilities/server.js';
-import db from './utilities/db.js';
+import Config from './config';
+import { createServer } from './utilities/server';
+import db from './utilities/db';
 
 function main() {
 	const { bunyan, ...rest } = Config;

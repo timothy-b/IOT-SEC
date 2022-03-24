@@ -1,11 +1,11 @@
 import * as Bunyan from 'bunyan';
-import { AlertType, IConfig } from '../types/IConfig.js';
+import { AlertType, IConfig } from '../types/IConfig';
 import { IDevice } from '../types/IDevice';
 import IEmail from '../types/IEmail';
-import { delayAsync } from './delay.js';
-import { sendEmailAsync } from './email.js';
-import { arpscanDevicesAsync } from './scanner.js';
-import { StateSmoothingFunctionMachine } from './stateSmoothingFunctionMachine.js';
+import { delayAsync } from './delay';
+import { sendEmailAsync } from './email';
+import { arpscanDevicesAsync } from './scanner';
+import { StateSmoothingFunctionMachine } from './stateSmoothingFunctionMachine';
 
 const defaultAlertMessages: { [alertType in AlertType]: string } = {
 	intruder: 'The fortress is in peril.',

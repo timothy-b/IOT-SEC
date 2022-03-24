@@ -1,18 +1,29 @@
 {
-  "name": "iotsec",
-  "version": "1.0.0",
-  "description": "An IOT security system using a Particle Photon and a Raspberry Pi",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/timothy-b/IOT-SEC"
-  },
-  "keywords": [
-    "IOT",
-    "security"
-  ],
-  "author": "Timothy Baumgartner",
-  "license": "MIT",
-  "devDependencies": {
-    "lerna": "^4.0.0"
-  }
+	"name": "iotsec",
+	"version": "1.0.0",
+	"description": "An IOT security system using a Particle Photon and a Raspberry Pi",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/timothy-b/IOT-SEC"
+	},
+	"keywords": [
+		"IOT",
+		"security"
+	],
+	"author": {
+		"name": "Timothy Baumgartner"
+	},
+	"contributors": [
+		{
+			"name": "Bryan Kenote"
+		}
+	],
+	"license": "MIT",
+	"devDependencies": {
+		"lerna": "^4.0.0"
+	},
+	"scripts": {
+		"build": "lerna run build",
+		"install": "lerna exec --stream -- npm install"
+	}
 }

@@ -3,9 +3,9 @@ import express, { Application, Express, NextFunction, Response } from 'express';
 import uuid from 'uuid-random';
 import { CustomRequest } from '../types/CustomRequest';
 import { IConfig } from '../types/IConfig';
-import { createAlerter } from './alerter.js';
-import { isAuthenticated } from './basicAuth.js';
-import { delayAsync } from './delay.js';
+import { createAlerter } from './alerter';
+import { isAuthenticated } from './basicAuth';
+import { delayAsync } from './delay';
 import {
 	SimpleLeakyBucket,
 	SimpleLeakyBucketEventKinds,

@@ -1,63 +1,63 @@
 {
-  "name": "iotsec-service",
-  "version": "1.0.0",
-  "description": "An IOT security system using a Particle Photon and a Raspberry Pi",
+	"name": "iotsec-service",
+	"version": "1.0.0",
+	"description": "An IOT security system using a Particle Photon and a Raspberry Pi",
 	"type": "module",
-  "exports": "./dist/program.js",
+	"exports": "./dist/program.js",
 	"engines": {
-		"node": "^12.20.0 || ^14.13.1 || >=16.0.0"
+		"node": "^>=16.0.0"
 	},
-  "dependencies": {
-    "arpscan": "^0.6.0",
-    "bunyan": "^1.8.12",
-    "emailjs": "^3.7.0",
-    "express": "^4.17.1",
-    "lowdb": "^3.0.0",
-    "uuid-random": "^1.3.2"
-  },
-  "devDependencies": {
-    "@types/async": "^3.0.2",
-    "@types/bunyan": "^1.8.6",
-    "@types/express": "^4.17.9",
-    "@types/jest": "^26.0.19",
-    "@types/node": "^12.7.12",
-    "@typescript-eslint/parser": "^3.10.1",
-    "eslint": "^5.16.0",
-    "eslint-config-faithlife": "^8.1.0",
-    "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-jest": "^24.1.3",
-    "husky": "^4.3.6",
-    "jest": "^26.6.3",
-    "prettier": "^1.19.1",
-    "ts-jest": "^26.4.4",
-    "ts-node": "^9.1.1",
-    "typescript": "^3.9.7"
-  },
-  "scripts": {
-    "build": "./node_modules/.bin/tsc",
-    "watch": "./node_modules/.bin/tsc --watch",
-    "depcheck": "npx depcheck",
-    "start": "node ./dist/program.js",
-    "stop": "ps aux | grep node | grep iot-sec | awk '{ print $2 }' | xargs sudo kill",
-    "lint": "eslint ./src/**/*.ts --ignore-pattern **/dist --ignore-pattern **/node_modules",
-    "lint:windows": ".\\node_modules\\.bin\\eslint ./src/**/*.{js,ts} --ignore-pattern **/dist --ignore-pattern **/node_modules",
-    "test": "node ./node_modules/jest/bin/jest.js"
-  },
-  "eslintConfig": {
-    "extends": [
-      "faithlife/base",
-      "plugin:import/typescript"
-    ],
-    "plugins": [
-      "jest"
-    ],
-    "env": {
-      "jest/globals": true
-    }
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lint"
-    }
-  }
+	"dependencies": {
+		"arpscan": "^0.6.0",
+		"bunyan": "^1.8.12",
+		"emailjs": "^3.7.0",
+		"express": "^4.17.1",
+		"lowdb": "^3.0.0",
+		"uuid-random": "^1.3.2"
+	},
+	"devDependencies": {
+		"@types/async": "^3.0.2",
+		"@types/bunyan": "^1.8.6",
+		"@types/express": "^4.17.9",
+		"@types/jest": "^26.0.19",
+		"@types/node": "^12.7.12",
+		"@typescript-eslint/parser": "^3.10.1",
+		"eslint": "^5.16.0",
+		"eslint-config-faithlife": "^8.1.0",
+		"eslint-plugin-import": "^2.22.1",
+		"eslint-plugin-jest": "^24.1.3",
+		"husky": "^4.3.6",
+		"jest": "^26.6.3",
+		"prettier": "^1.19.1",
+		"ts-jest": "^26.4.4",
+		"ts-node": "^9.1.1",
+		"typescript": "^3.9.7"
+	},
+	"scripts": {
+		"build": "./node_modules/.bin/tsc",
+		"watch": "./node_modules/.bin/tsc --watch",
+		"depcheck": "npx depcheck",
+		"start": "node ./dist/program.js",
+		"stop": "ps aux | grep node | grep iot-sec | awk '{ print $2 }' | xargs sudo kill",
+		"lint": "eslint ./src/**/*.ts --ignore-pattern **/dist --ignore-pattern **/node_modules",
+		"lint:windows": ".\\node_modules\\.bin\\eslint ./src/**/*.{js,ts} --ignore-pattern **/dist --ignore-pattern **/node_modules",
+		"test": "node ./node_modules/jest/bin/jest.js"
+	},
+	"eslintConfig": {
+		"extends": [
+			"faithlife/base",
+			"plugin:import/typescript"
+		],
+		"plugins": [
+			"jest"
+		],
+		"env": {
+			"jest/globals": true
+		}
+	},
+	"husky": {
+		"hooks": {
+			"pre-commit": "npm run lint"
+		}
+	}
 }

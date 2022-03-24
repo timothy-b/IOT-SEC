@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { useCallback, useImperativeHandle, useRef, useState } from 'preact/hooks';
+import { useCallback, useImperativeHandle, useState } from 'preact/hooks';
 import { forwardRef } from 'preact/compat';
 import style from './style.css';
 
@@ -21,7 +21,7 @@ const Toaster = forwardRef<IToasterRef, IToaster>(({ defaultTimeout = 5000 }, re
 				{message}
 			</output>
 		);
-	}, []);
+	}, [defaultTimeout]);
 
 	useImperativeHandle(ref, () => ({
 		makeToast(message: string) {

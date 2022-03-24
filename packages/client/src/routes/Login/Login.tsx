@@ -32,7 +32,7 @@ const Login: FunctionalComponent<ILogin> = ({ onFail }) => {
 			return onFail?.();
 		}
 		setAuthHeader(encoded);
-	}, [username, password]);
+	}, [username, password, onFail, setAuthHeader]);
 
 	return (
 		<div class={style.Login}>
