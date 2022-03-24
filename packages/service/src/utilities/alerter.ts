@@ -147,7 +147,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			}
 		}
 
-		if (awayMacs.size > 0) {
+		if (awayMacs.size > 0 && (homeMacs.size > 0 || arrivedMacs.size > 0 || departedMacs.size > 0)) {
 			await sendAlertWithMessageAsync(
 				getEmailAddressLineForMacs(awayMacs),
 				buildAwaySummaryMessage(homeMacs, arrivedMacs, departedMacs)
