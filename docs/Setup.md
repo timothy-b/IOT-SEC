@@ -22,7 +22,7 @@ Next, you'll need to get my project files to your Pi. I don't have any releases 
 
 Next install the arp-scan dependency: `apt-get install arp-scan`
 
-Next, make a copy of `exampleConfig.js`, name it `config.js`, and fill in the appropriate values.
+Next fill in the appropriate values in `config.ts`.
 
 Next, you can run `node tests/test-whatever.js` to run different tests and `node program.js` as admin to run the web server program.
 
