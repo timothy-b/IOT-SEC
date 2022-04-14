@@ -5,7 +5,7 @@
 	"type": "module",
 	"exports": "./dist/program.js",
 	"engines": {
-		"node": "^>=16.0.0"
+		"node": "^16.0.0"
 	},
 	"dependencies": {
 		"arpscan": "^0.6.0",
