@@ -4,7 +4,7 @@ deploy.sh
 
 # secrets
 config.js
-config.ts
+secretConfig.ts
 src/photon/iot-sec/.vscode/settings.json
 src/photon/iot-sec/src/secrets.h
 
