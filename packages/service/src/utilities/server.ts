@@ -10,7 +10,7 @@ import {
 	SimpleLeakyBucket,
 	SimpleLeakyBucketEventKinds,
 	SimpleLeakyBucketOptions,
-	SimpleLeakyBucketOverflowError,
+	SimpleLeakyBucketOverflowError
 } from './leakyBucket.js';
 
 export function createServer(config: IConfig, log: Bunyan) {
@@ -23,7 +23,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 	const leakyBucketOptions: SimpleLeakyBucketOptions = {
 		burstCapacity: 5,
 		maxCapacity: 100,
-		millisecondsPerDecrement: 1000,
+		millisecondsPerDecrement: 1000
 	};
 
 	function runServer(): Application {
@@ -107,8 +107,6 @@ export function createServer(config: IConfig, log: Bunyan) {
 				response.writeHead(429);
 
 				// Tarpit for 10 minutes :)
-				/* eslint-disable  @typescript-eslint/naming-convention */
-				/* eslint-disable @typescript-eslint/no-unused-vars */
 				for (const _ of Array(60)) {
 					// Send bytes to keep the connection open.
 					response.write('a');
@@ -139,7 +137,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		request.once('end', () => {
 			request.log.info(
 				{
-					request: getRequestInfo(request, body),
+					request: getRequestInfo(request, body)
 				},
 				'request received'
 			);
@@ -177,9 +175,9 @@ export function createServer(config: IConfig, log: Bunyan) {
 			url: request.url,
 			headers: {
 				...request.headers,
-				authorization: request.headers.authorization ? 'redacted' : null,
+				authorization: request.headers.authorization ? 'redacted' : null
 			},
-			body,
+			body
 		};
 	}
 

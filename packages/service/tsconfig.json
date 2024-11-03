@@ -2,9 +2,9 @@
     "compilerOptions": {
         "downlevelIteration": true,
         "esModuleInterop": true,
-        "target": "ES6",
-        "module": "es2020",
-        "moduleResolution": "node",
+        "target": "ESNext",
+        "module": "ES2022",
+        "moduleResolution": "Bundler",
         "noImplicitAny": false,
         "noUnusedLocals": true,
         "outDir": "dist",
