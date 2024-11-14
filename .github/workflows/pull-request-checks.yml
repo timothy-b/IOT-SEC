@@ -27,13 +27,13 @@ jobs:
         run: npm --prefix ./packages/service run test
 
       - name: Install client packages
-        run: npm --prefix ./packages/client ci
+        run: npm --prefix ./packages/client2 ci
 
       - name: Lint client
-        run: npm --prefix ./packages/client run lint
+        run: npm --prefix ./packages/client2 run lint
 
       - name: Build client
-        run: npm --prefix ./packages/client run build
+        run: npm --prefix ./packages/client2 run build
 
       - name: Run client tests
-        run: npm --prefix ./packages/client run test
+        run: npm --prefix ./packages/client2 run test

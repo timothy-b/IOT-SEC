@@ -14,6 +14,7 @@ interface ILogin {
 }
 
 // TODO: wire up auth
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const Login: FunctionalComponent<ILogin> = ({ onSuccess, onFail }) => {
     //const { setAuthHeader } = useContext(authContext);
 
