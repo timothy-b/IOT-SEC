@@ -14,6 +14,9 @@ export const Header: Preact.FunctionalComponent<HeaderProps> = ({ disableLinks }
 			{disableLinks ? null : (
 				<nav>
 					<a href="/" class={url == '/' && 'active'}>
+						Home
+					</a>
+					<a href="/status" class={url == '/status' && 'active'}>
 						Status
 					</a>
 					<a href="/config" class={url == '/config' && 'active'}>
