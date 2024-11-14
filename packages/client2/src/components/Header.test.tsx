@@ -3,9 +3,9 @@ import { Header } from './Header';
 import { shallow } from 'enzyme';
 
 describe('Initial Test of the Header', () => {
-	test('Header renders 2 nav items', () => {
+	test('Header renders 3 nav items', () => {
 		const context = shallow(<Header />);
 		expect(context.find('h1').text()).toBe('IOT-SEC');
-		expect(context.find('a').length).toBe(2);
+		expect(context.find('a').length).toBe(3);
 	});
 });

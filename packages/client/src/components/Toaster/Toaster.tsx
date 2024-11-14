@@ -1,6 +1,6 @@
 import { h } from 'preact';
-import { useCallback, useImperativeHandle, useState } from 'preact/hooks';
 import { forwardRef } from 'preact/compat';
+import { useCallback, useImperativeHandle, useState } from 'preact/hooks';
 import style from './style.css';
 
 interface IToaster {
@@ -8,6 +8,7 @@ interface IToaster {
 }
 
 export interface IToasterRef {
+	// eslint-disable-next-line no-unused-vars
 	makeToast: (message: string, timeout?: number) => void;
 }
 
@@ -35,12 +36,12 @@ const Toaster = forwardRef<IToasterRef, IToaster>(({ defaultTimeout = 5000 }, re
 export default Toaster;
 
 /*
-                      .___________.
-                      |           |
-       ___________.   |  |    /~\ |
-      / __   __  /|   | _ _   |_| |
-     / /:/  /:/ / |   !________|__!
-    / /:/  /:/ /  |            |
+					  .___________.
+					  |           |
+	   ___________.   |  |    /~\ |
+	  / __   __  /|   | _ _   |_| |
+	 / /:/  /:/ / |   !________|__!
+	/ /:/  /:/ /  |            |
    / /:/  /:/ /   |____________!
   / /:/  /:/ /    |
  / /:/  /:/ /     |

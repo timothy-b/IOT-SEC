@@ -30,11 +30,13 @@
     "@types/jest": "^29.5.14",
     "@typescript-eslint/eslint-plugin": "^8.12.2",
     "@typescript-eslint/parser": "^8.12.2",
+    "cheerio": "^1.0.0-rc.12",
     "enzyme": "^3.11.0",
     "enzyme-adapter-preact-pure": "^4.1.0",
     "eslint": "^8.57.1",
     "eslint-config-preact": "^1.5.0",
     "jest": "^29.7.0",
+    "jest-fixed-jsdom": "^0.0.9",
     "jest-preset-preact": "^4.1.1",
     "sirv-cli": "^3.0.0",
     "tsconfig-paths-webpack-plugin": "^4.1.0",
@@ -45,6 +47,10 @@
     "setupFiles": [
       "<rootDir>/tests/__mocks__/browserMocks.ts",
       "<rootDir>/tests/__mocks__/setupTests.ts"
+    ],
+    "testEnvironment": "jest-fixed-jsdom",
+    "transformIgnorePatterns": [
+      "/node_modules/(?!@ngrx|(?!deck.gl)|ng-dynamic|preact-iso)"
     ]
   }
 }
