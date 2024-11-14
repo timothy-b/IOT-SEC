@@ -7,6 +7,7 @@ const StatusWrapper = styled('div')`
 	width: 100%;
 `;
 
+// TODO: show cool stuff here
 export const Status: FunctionalComponent = () => {
     return (
         <StatusWrapper>
