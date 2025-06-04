@@ -7,6 +7,16 @@
 	"engines": {
 		"node": "^20.6.0"
 	},
+	"scripts": {
+		"build": "./node_modules/.bin/tsc",
+		"watch": "./node_modules/.bin/tsc --watch",
+		"depcheck": "npx depcheck",
+		"start": "node --import=extensionless/register ./dist/program.js",
+		"stop": "ps aux | grep node | grep iot-sec | awk '{ print $2 }' | xargs sudo kill",
+		"lint": "eslint ./src/**/*.ts --ignore-pattern **/dist --ignore-pattern **/node_modules",
+		"lint:windows": ".\\node_modules\\.bin\\eslint ./src/**/*.{js,ts} --ignore-pattern **/dist --ignore-pattern **/node_modules",
+		"test": "node ./node_modules/jest/bin/jest.js"
+	},
 	"dependencies": {
 		"arpscan": "^0.6.0",
 		"bunyan": "^1.8.15",
@@ -33,16 +43,6 @@
 		"ts-jest": "^29.2.5",
 		"ts-node": "^10.9.2",
 		"typescript": "^5.6.3"
-	},
-	"scripts": {
-		"build": "./node_modules/.bin/tsc",
-		"watch": "./node_modules/.bin/tsc --watch",
-		"depcheck": "npx depcheck",
-		"start": "node --import=extensionless/register ./dist/program.js",
-		"stop": "ps aux | grep node | grep iot-sec | awk '{ print $2 }' | xargs sudo kill",
-		"lint": "eslint ./src/**/*.ts --ignore-pattern **/dist --ignore-pattern **/node_modules",
-		"lint:windows": ".\\node_modules\\.bin\\eslint ./src/**/*.{js,ts} --ignore-pattern **/dist --ignore-pattern **/node_modules",
-		"test": "node ./node_modules/jest/bin/jest.js"
 	},
 	"eslintConfig": {
 		"extends": [

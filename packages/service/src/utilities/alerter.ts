@@ -53,6 +53,10 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		present: 'present',
 	};
 
+	// TODO: instead of kicking off a new polling session on every request,
+	// we probably want to prolong an existing polling singleton
+	// that way, transition results are coalesced across triggering events,
+	// and we don't spam the receiver with erroneous transitions.
 	async function pollForDevicePresenceTransitionsAsync(): Promise<{
 		homeMacs: Set<string>;
 		awayMacs: Set<string>;
@@ -96,7 +100,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			const detectedMacs = new Set(detectedDevices.map(d => d.mac));
 
 			for (const mac of config.knownPortableDevices.map(d => d.mac)) {
-				smoother.addStateStep(
+				smoother.addStatusStep(
 					mac,
 					detectedMacs.has(mac) ? DeviceStates.present : DeviceStates.absent
 				);
@@ -107,7 +111,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const homeMacs = new Set<string>();
 		const awayMacs = new Set<string>();
 		for (const device of nonTransitionedDevices) {
-			if (device.state === DeviceStates.absent) {
+			if (device.status === DeviceStates.absent) {
 				awayMacs.add(device.key);
 			} else {
 				// If they went back-and-forth, then they're practically home.

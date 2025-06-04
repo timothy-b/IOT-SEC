@@ -16,7 +16,8 @@
 			"prefer-double"
 		],
 		"comma-dangle": [
-			"warn"
+			"warn",
+			"always-multiline"
 		],
 		"ordered-imports": "off",
 		"indent": [

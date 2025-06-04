@@ -10,7 +10,7 @@ import {
 	SimpleLeakyBucket,
 	SimpleLeakyBucketEventKinds,
 	SimpleLeakyBucketOptions,
-	SimpleLeakyBucketOverflowError
+	SimpleLeakyBucketOverflowError,
 } from './leakyBucket.js';
 
 export function createServer(config: IConfig, log: Bunyan) {
@@ -23,7 +23,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 	const leakyBucketOptions: SimpleLeakyBucketOptions = {
 		burstCapacity: 5,
 		maxCapacity: 100,
-		millisecondsPerDecrement: 1000
+		millisecondsPerDecrement: 1000,
 	};
 
 	function runServer(): Application {
@@ -43,6 +43,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			async (request: CustomRequest, response) => {
 				const { runAlerterAsync } = createAlerter(config, request.log);
 
+				// TODO: we probably want to fire-and-forget this and finish the request.
 				await runAlerterAsync();
 			}
 		);
@@ -137,7 +138,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		request.once('end', () => {
 			request.log.info(
 				{
-					request: getRequestInfo(request, body)
+					request: getRequestInfo(request, body),
 				},
 				'request received'
 			);
@@ -175,9 +176,9 @@ export function createServer(config: IConfig, log: Bunyan) {
 			url: request.url,
 			headers: {
 				...request.headers,
-				authorization: request.headers.authorization ? 'redacted' : null
+				authorization: request.headers.authorization ? 'redacted' : null,
 			},
-			body
+			body,
 		};
 	}
 
