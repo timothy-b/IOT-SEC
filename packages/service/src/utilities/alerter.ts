@@ -1,5 +1,5 @@
 import * as Bunyan from 'bunyan';
-import { AlertType, IConfig } from '../types/IConfig';
+import { AlertType, IConfig, type User } from '../types/IConfig';
 import { IDevice } from '../types/IDevice';
 import IEmail from '../types/IEmail';
 import { delayAsync } from './delay';
@@ -20,30 +20,21 @@ const alertTypes = Object.keys(defaultAlertMessages).reduce(
 ) as { [alertType in AlertType]: AlertType };
 
 export function createAlerter(config: IConfig, log: Bunyan) {
-	const portableDeviceByMac = config.knownPortableDevices.reduce((acc, cur) => {
-		acc[cur.mac] = cur;
-		return acc;
-	}, {}) as { string: IDevice };
+	async function runAlerter(): Promise<void> {
+		const { homeMacs, awayMacs, arrivedMacs, departedMacs } =
+			await pollForDevicePresenceTransitions();
 
-	async function runAlerterAsync() {
-		const {
-			homeMacs,
-			awayMacs,
-			arrivedMacs,
-			departedMacs,
-		} = await pollForDevicePresenceTransitionsAsync();
-
-		await sendSummaryMessagesAsync(homeMacs, awayMacs, arrivedMacs, departedMacs);
+		await sendSummaryMessages(homeMacs, awayMacs, arrivedMacs, departedMacs);
 	}
 
-	async function quickScanAsync(): Promise<string> {
-		const knownDevices = await scanForKnownDevicesAsync();
+	async function quickScan(): Promise<string> {
+		const knownDevices = await scanForKnownDevices();
 
 		if (knownDevices.length === 0) {
 			return 'nobody home';
 		}
 
-		return `home: ${knownDevices.map(d => d.name).join(', ')}`;
+		return `home: ${knownDevices.map((d) => d.name).join(', ')}`;
 	}
 
 	type DeviceState = 'absent' | 'present';
@@ -53,11 +44,15 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		present: 'present',
 	};
 
+	function getUsersByMac(users: User[], mac: string): User[] {
+		return users.filter((u) => u.devices.some((d) => d.mac === mac));
+	}
+
 	// TODO: instead of kicking off a new polling session on every request,
 	// we probably want to prolong an existing polling singleton
 	// that way, transition results are coalesced across triggering events,
 	// and we don't spam the receiver with erroneous transitions.
-	async function pollForDevicePresenceTransitionsAsync(): Promise<{
+	async function pollForDevicePresenceTransitions(): Promise<{
 		homeMacs: Set<string>;
 		awayMacs: Set<string>;
 		arrivedMacs: Set<string>;
@@ -66,28 +61,28 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const arrivedMacs = new Set<string>();
 		const departedMacs = new Set<string>();
 		const smoother = new StateSmoothingFunctionMachine<DeviceState>({
-			trackedItems: config.knownPortableDevices.map(d => ({
-				key: d.mac,
-				onFirstTransition: async newStateName => {
-					let alertType: AlertType;
-					switch (newStateName) {
-						case DeviceStates.absent:
-							alertType = alertTypes.departure;
-							departedMacs.add(d.mac);
-							break;
-						case DeviceStates.present:
-							alertType = alertTypes.arrival;
-							arrivedMacs.add(d.mac);
-							break;
-						default:
-							throw Error(`Unhandled state" ${newStateName}`);
-					}
+			trackedItems: config.users
+				.flatMap((u) => u.devices)
+				.map((device) => ({
+					key: device.mac,
+					onFirstTransition: async (newStateName) => {
+						let alertType: AlertType;
+						switch (newStateName) {
+							case DeviceStates.absent:
+								alertType = alertTypes.departure;
+								departedMacs.add(device.mac);
+								break;
+							case DeviceStates.present:
+								alertType = alertTypes.arrival;
+								arrivedMacs.add(device.mac);
+								break;
+							default:
+								throw Error(`Unhandled state" ${newStateName}`);
+						}
 
-					await sendSimpleAlertAsync(alertType, [
-						getKnownDeviceByMac(d.mac).emailAddress,
-					]);
-				},
-			})),
+						await sendSimpleAlert(getUsersByMac(config.users, device.mac), alertType);
+					},
+				})),
 			transitionWindowSize: 3,
 		});
 
@@ -96,10 +91,10 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		while (remainingPollCount-- > 0) {
 			await delayAsync(pollingIntervalInSeconds * 1000);
 
-			const detectedDevices = await scanForKnownDevicesAsync();
-			const detectedMacs = new Set(detectedDevices.map(d => d.mac));
+			const detectedDevices = await scanForKnownDevices();
+			const detectedMacs = new Set(detectedDevices.map((d) => d.mac));
 
-			for (const mac of config.knownPortableDevices.map(d => d.mac)) {
+			for (const mac of config.users.flatMap((u) => u.devices).map((d) => d.mac)) {
 				smoother.addStatusStep(
 					mac,
 					detectedMacs.has(mac) ? DeviceStates.present : DeviceStates.absent
@@ -130,30 +125,24 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		return { homeMacs, awayMacs, arrivedMacs, departedMacs };
 	}
 
-	async function sendSummaryMessagesAsync(
+	async function sendSummaryMessages(
 		homeMacs: Set<string>,
 		awayMacs: Set<string>,
 		arrivedMacs: Set<string>,
 		departedMacs: Set<string>
-	) {
+	): Promise<void> {
+		const homeUsers = config.users.filter((u) => u.devices.some((d) => homeMacs.has(d.mac)));
+
 		if (arrivedMacs.size === 0 && departedMacs.size === 0) {
 			if (homeMacs.size === 0) {
-				await sendSimpleAlertAsync(
-					alertTypes.intruder,
-					config.knownPortableDevices.map(d => d.emailAddress)
-				);
+				await sendSimpleAlert(config.users, alertTypes.intruder);
 			} else {
-				await sendSimpleAlertAsync(
-					alertTypes.doorOpen,
-					config.knownPortableDevices
-						.filter(d => homeMacs.has(d.mac))
-						.map(d => d.emailAddress)
-				);
+				await sendSimpleAlert(homeUsers, alertTypes.doorOpen);
 			}
 		} else {
 			if (homeMacs.size > 0) {
-				await sendAlertWithMessageAsync(
-					getEmailAddressLineForMacs(homeMacs),
+				await sendAlertWithMessage(
+					homeUsers,
 					buildHomeSummaryMessage(arrivedMacs, departedMacs)
 				);
 			}
@@ -163,37 +152,25 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			awayMacs.size > 0 &&
 			(homeMacs.size > 0 || arrivedMacs.size > 0 || departedMacs.size > 0)
 		) {
-			await sendAlertWithMessageAsync(
-				getEmailAddressLineForMacs(awayMacs),
+			const awayUsers = config.users.filter((u) =>
+				u.devices.some((d) => awayMacs.has(d.mac))
+			);
+			await sendAlertWithMessage(
+				awayUsers,
 				buildAwaySummaryMessage(homeMacs, arrivedMacs, departedMacs)
 			);
 		}
-	}
-
-	function getEmailAddressLineForMacs(macs: Set<string>): string {
-		return getKnownDevicesByMac(macs)
-			.map(d => d.emailAddress)
-			.filter(a => a !== null)
-			.join(',');
-	}
-
-	function getKnownDeviceByMac(mac: string): IDevice {
-		return portableDeviceByMac[mac] as IDevice;
-	}
-
-	function getKnownDevicesByMac(macs: Set<string>): IDevice[] {
-		return Array.from(macs.values()).map(m => portableDeviceByMac[m] as IDevice);
 	}
 
 	function buildHomeSummaryMessage(arrivedMacs: Set<string>, departedMacs: Set<string>): string {
 		const lines = [];
 
 		if (arrivedMacs.size > 0) {
-			lines.push(getLineForMacs('arrived: ', arrivedMacs));
+			lines.push(buildLineForMacs('arrived: ', arrivedMacs));
 		}
 
 		if (departedMacs.size > 0) {
-			lines.push(getLineForMacs('departed: ', departedMacs));
+			lines.push(buildLineForMacs('departed: ', departedMacs));
 		}
 
 		return lines.join('\n');
@@ -207,56 +184,64 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const lines = [];
 
 		if (homeMacs.size > 0) {
-			lines.push(getLineForMacs('home: ', homeMacs));
+			lines.push(buildLineForMacs('home: ', homeMacs));
 		}
 
 		if (arrivedMacs.size > 0) {
-			lines.push(getLineForMacs('arrived: ', arrivedMacs));
+			lines.push(buildLineForMacs('arrived: ', arrivedMacs));
 		}
 
 		if (departedMacs.size > 0) {
-			lines.push(getLineForMacs('departed: ', departedMacs));
+			lines.push(buildLineForMacs('departed: ', departedMacs));
 		}
 
 		return lines.join('\n');
 	}
 
-	function getLineForMacs(linePrefix: string, macs: Set<string>) {
-		return `${linePrefix}${getKnownDevicesByMac(macs)
-			.map(d => d.name)
-			.join(', ')}`;
+	function buildLineForMacs(linePrefix: string, macs: Set<string>) {
+		const userNamesForMacs = config.users
+			.filter((u) => u.devices.some((d) => macs.has(d.mac)))
+			.map((u) => u.name);
+
+		return `${linePrefix}${userNamesForMacs.join(', ')}`;
 	}
 
-	async function scanForKnownDevicesAsync(): Promise<IDevice[]> {
+	async function scanForKnownDevices(): Promise<IDevice[]> {
 		const detectedDevices = await arpscanDevicesAsync();
-		const detectedMacs = new Set(detectedDevices.map(d => d.mac));
+		const detectedMacs = new Set(detectedDevices.map((d) => d.mac));
 
-		return (config.knownPortableDevices || []).filter(kd => detectedMacs.has(kd.mac));
+		return (config.users.flatMap((u) => u.devices) || []).filter((kd) =>
+			detectedMacs.has(kd.mac)
+		);
 	}
 
-	async function sendSimpleAlertAsync(type: AlertType, recipientEmailAddresses: string[]) {
-		const recipients = recipientEmailAddresses.filter(a => a !== null).join(',');
+	async function sendSimpleAlert(users: User[], type: AlertType): Promise<void> {
+		return await sendAlertWithMessage(users, defaultAlertMessages[type]);
+	}
 
-		if (recipients !== '') {
-			await sendAlertCoreAsync({
-				...config.emailConfig,
-				to: recipients,
-				text: defaultAlertMessages[type],
-			});
+	async function sendAlertWithMessage(users: User[], message: string): Promise<void> {
+		const alertMethods = users.flatMap((u) => u.alertMethods);
+
+		const emailAlertMethods = alertMethods.filter((am) => am.type === 'email');
+		if (emailAlertMethods.length > 0) {
+			const recipients = emailAlertMethods.map((a) => a.emailAddress).join(',');
+
+			if (recipients !== '') {
+				await sendEmailAlert({
+					...config.emailConfig,
+					to: recipients,
+					text: message,
+				});
+			}
+		}
+
+		const gotifyAlertMethods = alertMethods.filter((am) => am.type === 'gotify');
+		if (gotifyAlertMethods.length > 0) {
+			console.info('Not implemented yet!');
 		}
 	}
 
-	async function sendAlertWithMessageAsync(recipients: string, message: string) {
-		if (recipients !== '') {
-			await sendAlertCoreAsync({
-				...config.emailConfig,
-				to: recipients,
-				text: message,
-			});
-		}
-	}
-
-	async function sendAlertCoreAsync(email: IEmail) {
+	async function sendEmailAlert(email: IEmail): Promise<void> {
 		try {
 			log.info({ emailMessage: email }, 'sending email');
 			const message = await sendEmailAsync(email, config);
@@ -266,5 +251,5 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		}
 	}
 
-	return { runAlerterAsync, quickScanAsync };
+	return { runAlerter, quickScan };
 }

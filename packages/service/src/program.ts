@@ -1,13 +1,16 @@
 import { createLogger } from 'bunyan';
 import Config from './config';
-import { createServer } from './utilities/server';
 import db from './utilities/db';
+import { createServer } from './utilities/server';
 
 function main() {
 	const { bunyan, ...rest } = Config;
 	const log = createLogger(bunyan);
 	db.data = db.data || rest;
 	db.write();
+
+	// TODO: verify uniqueness of user names
+
 	const { runServer } = createServer(Config, log);
 	const server = runServer();
 

@@ -41,10 +41,10 @@ export function createServer(config: IConfig, log: Bunyan) {
 			'/iotsec/alertDoorOpened',
 			handleAlertResponse,
 			async (request: CustomRequest, response) => {
-				const { runAlerterAsync } = createAlerter(config, request.log);
+				const { runAlerter } = createAlerter(config, request.log);
 
 				// TODO: we probably want to fire-and-forget this and finish the request.
-				await runAlerterAsync();
+				await runAlerter();
 			}
 		);
 
@@ -69,12 +69,12 @@ export function createServer(config: IConfig, log: Bunyan) {
 
 	function getPathsFromApp(app: Express): Set<string> {
 		return new Set(
-			app._router.stack.filter(l => typeof l.route !== 'undefined').map(l => l.route.path)
+			app._router.stack.filter((l) => typeof l.route !== 'undefined').map((l) => l.route.path)
 		);
 	}
 
 	async function quickScanAsync(request: CustomRequest, response: Response) {
-		const { quickScanAsync } = createAlerter(config, request.log);
+		const { quickScan: quickScanAsync } = createAlerter(config, request.log);
 
 		const message = await quickScanAsync();
 
@@ -183,11 +183,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 	}
 
 	function isTarPitCandidate(request: CustomRequest, routes: Set<string>): boolean {
-		return !routes
-			.add('/')
-			.add('/favicon.ico')
-			.add('/iotsec/up')
-			.has(request.url);
+		return !routes.add('/').add('/favicon.ico').add('/iotsec/up').has(request.url);
 	}
 
 	async function maybeTarpitClientAsync(request: CustomRequest): Promise<boolean> {

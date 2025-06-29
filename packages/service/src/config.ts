@@ -2,16 +2,36 @@ import { IConfig } from './types/IConfig';
 
 // fill in the values and rename to config.js
 const Config: IConfig = {
-	knownPortableDevices: [
+	users: [
 		{
-			mac: '00:00:00:00:00:00',
-			name: 'my phone',
-			emailAddress: '5550000000@messaging.carrier.com',
+			name: 'Alice',
+			devices: [
+				{
+					name: 'Pixel',
+					mac: '00:00:00:00:00:00',
+				},
+			],
+			alertMethods: [
+				{
+					name: "Alice's Gotify",
+					type: 'gotify',
+					url: 'https://example.com/gotify/',
+				},
+				{
+					name: "Alice's Email",
+					type: 'email',
+					emailAddress: '5555555555@sprintpcs.com',
+				},
+			],
 		},
 		{
-			mac: '11:11:11:11:11:11',
-			name: 'my roomate',
-			emailAddress: '5551111111@messaging.carrier.com',
+			name: 'Bob',
+			devices: [
+				{
+					name: "Bob's Pixel",
+					mac: 'FF:FF:FF:FF:FF:FF',
+				},
+			],
 		},
 	],
 	localhost: {

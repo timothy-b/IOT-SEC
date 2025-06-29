@@ -1,5 +1,4 @@
 import { LoggerOptions } from 'bunyan';
-import { IDevice } from './IDevice';
 
 export type AlertType = 'intruder' | 'departure' | 'arrival' | 'doorOpen';
 
@@ -10,8 +9,29 @@ export interface IEmailConfig {
 	subject: string;
 }
 
+export interface EmailAlertMethod {
+	type: 'email';
+	emailAddress: string;
+}
+
+export interface GotifyAlertMethod {
+	type: 'gotify';
+	url: string;
+}
+
+type AlertMethod = (EmailAlertMethod | GotifyAlertMethod) & { name: string; type: string };
+
+export interface User {
+	name: string;
+	devices: {
+		name: string;
+		mac: string;
+	}[];
+	alertMethods?: AlertMethod[];
+}
+
 export interface IConfig {
-	knownPortableDevices?: IDevice[];
+	users: User[];
 	localhost: {
 		port: number;
 	};

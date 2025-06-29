@@ -54,6 +54,8 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 
 		this.state[key].statusSteps.push(status);
 
+		// TODO: if initial status is null and we detect device, then set initial status to "present"
+		// and reset window
 		if (this.state[key].statusSteps.length < this.config.transitionWindowSize) {
 			// If the window isn't full, then we don't have anything else to do yet.
 			return;
