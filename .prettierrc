@@ -3,7 +3,7 @@
 	"singleQuote": true,
 	"useTabs": true,
 	"tabWidth": 4,
-	"trailingComma": "es5",
+	"trailingComma": "all",
 	"semi": true,
 	"overrides": [
 		{

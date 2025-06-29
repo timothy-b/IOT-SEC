@@ -17,7 +17,7 @@ const defaultAlertMessages: { [alertType in AlertType]: string } = {
 
 const alertTypes = Object.keys(defaultAlertMessages).reduce(
 	(map, key) => ({ ...map, [key]: key }),
-	{}
+	{},
 ) as { [alertType in AlertType]: AlertType };
 
 export function createAlerter(config: IConfig, log: Bunyan) {
@@ -98,7 +98,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			for (const mac of config.users.flatMap((u) => u.devices).map((d) => d.mac)) {
 				smoother.addStatusStep(
 					mac,
-					detectedMacs.has(mac) ? DeviceStates.present : DeviceStates.absent
+					detectedMacs.has(mac) ? DeviceStates.present : DeviceStates.absent,
 				);
 			}
 		}
@@ -130,7 +130,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		homeMacs: Set<string>,
 		awayMacs: Set<string>,
 		arrivedMacs: Set<string>,
-		departedMacs: Set<string>
+		departedMacs: Set<string>,
 	): Promise<void> {
 		const homeUsers = config.users.filter((u) => u.devices.some((d) => homeMacs.has(d.mac)));
 
@@ -144,7 +144,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			if (homeMacs.size > 0) {
 				await sendAlertWithMessage(
 					homeUsers,
-					buildHomeSummaryMessage(arrivedMacs, departedMacs)
+					buildHomeSummaryMessage(arrivedMacs, departedMacs),
 				);
 			}
 		}
@@ -154,11 +154,11 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			(homeMacs.size > 0 || arrivedMacs.size > 0 || departedMacs.size > 0)
 		) {
 			const awayUsers = config.users.filter((u) =>
-				u.devices.some((d) => awayMacs.has(d.mac))
+				u.devices.some((d) => awayMacs.has(d.mac)),
 			);
 			await sendAlertWithMessage(
 				awayUsers,
-				buildAwaySummaryMessage(homeMacs, arrivedMacs, departedMacs)
+				buildAwaySummaryMessage(homeMacs, arrivedMacs, departedMacs),
 			);
 		}
 	}
@@ -180,7 +180,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	function buildAwaySummaryMessage(
 		homeMacs: Set<string>,
 		arrivedMacs: Set<string> = new Set(),
-		departedMacs: Set<string> = new Set()
+		departedMacs: Set<string> = new Set(),
 	): string {
 		const lines = [];
 

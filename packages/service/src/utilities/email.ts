@@ -5,7 +5,7 @@ import { IConfig } from '../types/IConfig';
 function sendEmail(
 	email: MessageHeaders,
 	config: IConfig,
-	callback: MessageCallback<MessageHeaders>
+	callback: MessageCallback<MessageHeaders>,
 ): void {
 	const connection = new SMTPClient(config.emailServer);
 

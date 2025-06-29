@@ -41,7 +41,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			(req: ExpressRequest, res: express.Response, next: express.NextFunction) => {
 				void handleTarpittingAsync(req as CustomRequest, res, next, getPathsFromApp(app));
 			},
-			handleAuthentication
+			handleAuthentication,
 		);
 
 		app.post('/iotsec/alertDoorOpened', handleAlertResponse, (request: ExpressRequest) => {
@@ -77,7 +77,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any
 				.filter((l: { route: any }) => typeof l.route !== 'undefined')
 				// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
-				.map((l: { route: { path: any } }) => l.route.path)
+				.map((l: { route: { path: any } }) => l.route.path),
 		);
 	}
 
@@ -104,7 +104,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		request: CustomRequest,
 		response: Response,
 		next: NextFunction,
-		routes: Set<string>
+		routes: Set<string>,
 	): Promise<void> {
 		const shouldTarpit = isTarPitCandidate(request, routes);
 		if (shouldTarpit) {
@@ -114,7 +114,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			const shouldTarpit = await maybeTarpitClientAsync(request);
 			if (shouldTarpit) {
 				request.log.info(
-					`delayed for ${(Date.now().valueOf() - timeBeforeTarpit.valueOf()) / 1000} seconds`
+					`delayed for ${(Date.now().valueOf() - timeBeforeTarpit.valueOf()) / 1000} seconds`,
 				);
 
 				response.writeHead(429);
@@ -127,7 +127,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 					await delayAsync(10_000);
 				}
 				request.log.debug(
-					`delayed and tarpitted for ${(Date.now().valueOf() - timeBeforeTarpit.valueOf()) / 1000} seconds`
+					`delayed and tarpitted for ${(Date.now().valueOf() - timeBeforeTarpit.valueOf()) / 1000} seconds`,
 				);
 				response.end();
 			}
@@ -155,7 +155,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 				{
 					request: getRequestInfo(mutatedRequest, body),
 				},
-				'request received'
+				'request received',
 			);
 
 			mutatedRequest.off('readable', appendBody);
@@ -238,14 +238,14 @@ export function createServer(config: IConfig, log: Bunyan) {
 		error: { message: string },
 		request: ExpressRequest,
 		response: Response,
-		next: NextFunction
+		next: NextFunction,
 	) {
 		const mutatedRequest = request as CustomRequest;
 
 		if (error.message.includes('EACCES')) {
 			mutatedRequest.log.error(
 				error,
-				'EACCES error - permission denied. You must run the program as admin.'
+				'EACCES error - permission denied. You must run the program as admin.',
 			);
 		} else {
 			mutatedRequest.log.error(error, 'server error');
