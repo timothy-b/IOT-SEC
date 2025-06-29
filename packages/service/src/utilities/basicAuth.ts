@@ -1,6 +1,6 @@
 import { IConfig } from '../types/IConfig';
 
-export function isAuthenticated(config: IConfig, authorizationHeader: string): boolean {
+export function isAuthenticated(config: IConfig, authorizationHeader: string | undefined): boolean {
 	const header = authorizationHeader || ''; // get the header
 
 	const token = header.split(/\s+/).pop() || ''; // and the encoded auth token

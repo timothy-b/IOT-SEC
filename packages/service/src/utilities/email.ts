@@ -1,12 +1,15 @@
-import { SMTPClient } from 'emailjs';
+import { SMTPClient, type MessageCallback, type MessageHeaders } from 'emailjs';
 import { promisify } from 'util';
 import { IConfig } from '../types/IConfig';
-import IEmail from '../types/IEmail';
 
-function sendEmail(email: IEmail, config: IConfig, callback: (err, result) => void): void {
+function sendEmail(
+	email: MessageHeaders,
+	config: IConfig,
+	callback: MessageCallback<MessageHeaders>
+): void {
 	const connection = new SMTPClient(config.emailServer);
 
 	connection.send(email, callback);
 }
 
-export const sendEmailAsync = promisify<IEmail, IConfig, string>(sendEmail);
+export const sendEmailAsync = promisify(sendEmail);

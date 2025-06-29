@@ -1,8 +1,20 @@
 {
 	"parser": "@typescript-eslint/parser",
 	"parserOptions": {
-		"sourceType": "module"
+		"sourceType": "module",
+		"projectService": {
+			"allowDefaultProject": [
+				"*.ts"
+			],
+		},
+		"tsConfigRootDir": "."
 	},
+	"plugins": [
+		"@typescript-eslint"
+	],
+	"extends": [
+		"plugin:@typescript-eslint/strict-type-checked"
+	],
 	"rules": {
 		"quotes": [
 			"error",
@@ -34,6 +46,9 @@
 		"curly": [
 			"error",
 			"all"
-		]
+		],
+		"@typescript-eslint/no-floating-promises": "error",
+		// TODO: allowNumber after upgrading to eslint 9
+		"@typescript-eslint/restrict-template-expressions": "warn"
 	}
 }

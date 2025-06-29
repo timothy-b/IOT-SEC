@@ -32,8 +32,10 @@
 		"@types/bunyan": "^1.8.11",
 		"@types/express": "^4.17.21",
 		"@types/jest": "^29.5.14",
+		"@types/lodash": "^4.17.19",
 		"@types/node": "^20.17.5",
-		"@typescript-eslint/parser": "^8.12.2",
+		"@typescript-eslint/eslint-plugin": "^8.35.0",
+		"@typescript-eslint/parser": "^8.35.0",
 		"eslint": "^8.57.1",
 		"eslint-config-faithlife": "^10.1.0",
 		"eslint-plugin-import": "^2.31.0",
@@ -43,7 +45,8 @@
 		"prettier": "^3.3.3",
 		"ts-jest": "^29.2.5",
 		"ts-node": "^10.9.2",
-		"typescript": "^5.6.3"
+		"typescript": "^5.6.3",
+		"typescript-eslint": "^8.35.0"
 	},
 	"eslintConfig": {
 		"extends": [

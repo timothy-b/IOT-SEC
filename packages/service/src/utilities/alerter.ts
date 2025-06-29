@@ -1,8 +1,8 @@
 import * as Bunyan from 'bunyan';
+import type { MessageHeaders } from 'emailjs';
 import { GotifyClient } from 'gotify-client';
-import { AlertType, IConfig, type User } from '../types/IConfig';
-import { IDevice } from '../types/IDevice';
-import IEmail from '../types/IEmail';
+import _ from 'lodash';
+import { AlertType, IConfig, type IDevice, type User } from '../types/IConfig';
 import { delayAsync } from './delay';
 import { sendEmailAsync } from './email';
 import { arpscanDevicesAsync } from './scanner';
@@ -211,19 +211,17 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const detectedDevices = await arpscanDevicesAsync();
 		const detectedMacs = new Set(detectedDevices.map((d) => d.mac));
 
-		return (config.users.flatMap((u) => u.devices) || []).filter((kd) =>
-			detectedMacs.has(kd.mac)
-		);
+		return config.users.flatMap((u) => u.devices).filter((kd) => detectedMacs.has(kd.mac));
 	}
 
 	async function sendSimpleAlert(users: User[], type: AlertType): Promise<void> {
-		return await sendAlertWithMessage(users, defaultAlertMessages[type]);
+		await sendAlertWithMessage(users, defaultAlertMessages[type]);
 	}
 
 	async function sendAlertWithMessage(users: User[], message: string): Promise<void> {
-		const alertMethods = users.flatMap((u) => u.alertMethods);
+		const alertMethods = _.compact(users.flatMap((u) => u.alertMethods));
 
-		const emailAlertMethods = alertMethods.filter((am) => am.type === 'email');
+		const emailAlertMethods = _.compact(alertMethods.filter((am) => am.type === 'email'));
 		if (emailAlertMethods.length > 0) {
 			const recipients = emailAlertMethods.map((a) => a.emailAddress).join(',');
 
@@ -243,15 +241,20 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 					app: alertMethod.apiKey,
 				});
 
-				client.message.createMessage({
-					title: 'IOT-SEC',
-					message,
-				});
+				try {
+					log.info('sending gotify message');
+					await client.message.createMessage({
+						title: 'IOT-SEC',
+						message,
+					});
+				} catch (e) {
+					log.error(e);
+				}
 			}
 		}
 	}
 
-	async function sendEmailAlert(email: IEmail): Promise<void> {
+	async function sendEmailAlert(email: MessageHeaders): Promise<void> {
 		try {
 			log.info({ emailMessage: email }, 'sending email');
 			const message = await sendEmailAsync(email, config);

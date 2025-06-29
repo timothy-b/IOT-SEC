@@ -13,6 +13,7 @@ function arpscanDevices(callback: (err: Error, result: IArpscannedDevice[]) => v
 		interface: 'eth0',
 		sudo: true,
 	};
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 	Arpscan(callback, arpscanOptions);
 }
 

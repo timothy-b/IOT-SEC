@@ -2,13 +2,6 @@ import { LoggerOptions } from 'bunyan';
 
 export type AlertType = 'intruder' | 'departure' | 'arrival' | 'doorOpen';
 
-export interface IEmailConfig {
-	from: string;
-	ssl: boolean;
-	port: number;
-	subject: string;
-}
-
 export interface EmailAlertMethod {
 	type: 'email';
 	emailAddress: string;
@@ -22,12 +15,14 @@ export interface GotifyAlertMethod {
 
 type AlertMethod = (EmailAlertMethod | GotifyAlertMethod) & { name: string; type: string };
 
+export interface IDevice {
+	mac: string;
+	name: string;
+}
+
 export interface User {
 	name: string;
-	devices: {
-		name: string;
-		mac: string;
-	}[];
+	devices: IDevice[];
 	alertMethods?: AlertMethod[];
 }
 
@@ -41,8 +36,12 @@ export interface IConfig {
 		password: string;
 		host: string;
 		ssl: boolean;
+		port: number;
 	};
-	emailConfig: IEmailConfig;
+	emailConfig: {
+		from: string;
+		subject: string;
+	};
 	okResponseBody: string;
 	basicAuthentication: {
 		enabled: boolean;

@@ -33,12 +33,17 @@ Finally, install the program as a service with Systemd. Create a file `/etc/syst
 ```
 [Unit]
 Description=IOT-SEC
-Documentation=github.com/timothy-b/iot-sec
+Documentation=https://github.com/timothy-b/iot-sec
 After=multi-user.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
 
 [Service]
 Type=idle
-ExecStart=/usr/bin/node /home/pi/IOT-SEC/src/program.js
+WorkingDirectory=/home/pi/IOT-SEC
+ExecStart=/usr/bin/node --import=extensionless/register /home/pi/IOT-SEC/src/program.js
+Restart=on-failure
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target

@@ -43,11 +43,10 @@ const Config: IConfig = {
 		password: 'password',
 		host: 'smtp.example.com',
 		ssl: true,
+		port: 465,
 	},
 	emailConfig: {
 		from: 'Firstname Lastname <user@example.com>',
-		ssl: true,
-		port: 465,
 		subject: '',
 	},
 	okResponseBody: `

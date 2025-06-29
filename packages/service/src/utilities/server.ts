@@ -1,5 +1,11 @@
 import * as Bunyan from 'bunyan';
-import express, { Application, Express, NextFunction, Response } from 'express';
+import express, {
+	Application,
+	Express,
+	Request as ExpressRequest,
+	NextFunction,
+	Response,
+} from 'express';
 import uuid from 'uuid-random';
 import { CustomRequest } from '../types/CustomRequest';
 import { IConfig } from '../types/IConfig';
@@ -32,23 +38,20 @@ export function createServer(config: IConfig, log: Bunyan) {
 		app.use(
 			'/',
 			addTracing,
-			async (req, res, next) =>
-				await handleTarpittingAsync(req as CustomRequest, res, next, getPathsFromApp(app)),
+			(req: ExpressRequest, res: express.Response, next: express.NextFunction) => {
+				void handleTarpittingAsync(req as CustomRequest, res, next, getPathsFromApp(app));
+			},
 			handleAuthentication
 		);
 
-		app.post(
-			'/iotsec/alertDoorOpened',
-			handleAlertResponse,
-			async (request: CustomRequest, response) => {
-				const { runAlerter } = createAlerter(config, request.log);
+		app.post('/iotsec/alertDoorOpened', handleAlertResponse, (request: ExpressRequest) => {
+			const { runAlerter } = createAlerter(config, (request as CustomRequest).log);
 
-				// TODO: we probably want to fire-and-forget this and finish the request.
-				await runAlerter();
-			}
-		);
+			void runAlerter();
+		});
 
-		app.get('/iotsec/config', (request: CustomRequest, response: Response) => {
+		app.get('/iotsec/config', (request: ExpressRequest, response: Response) => {
+			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 			const { bunyan, ...rest } = config;
 			response.json(rest);
 			response.end();
@@ -57,7 +60,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		app.get('/iotsec/quickScan', quickScanAsync);
 
 		// TODO: also make a request to the particle to make sure that it responds.
-		app.get('/iotsec/up', (request: CustomRequest, response: Response) => {
+		app.get('/iotsec/up', (request: ExpressRequest, response: Response) => {
 			response.writeHead(200);
 			response.end();
 		});
@@ -69,23 +72,30 @@ export function createServer(config: IConfig, log: Bunyan) {
 
 	function getPathsFromApp(app: Express): Set<string> {
 		return new Set(
-			app._router.stack.filter((l) => typeof l.route !== 'undefined').map((l) => l.route.path)
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+			app._router.stack
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				.filter((l: { route: any }) => typeof l.route !== 'undefined')
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return
+				.map((l: { route: { path: any } }) => l.route.path)
 		);
 	}
 
-	async function quickScanAsync(request: CustomRequest, response: Response) {
-		const { quickScan: quickScanAsync } = createAlerter(config, request.log);
+	function quickScanAsync(request: ExpressRequest, response: Response) {
+		const { quickScan } = createAlerter(config, (request as CustomRequest).log);
 
-		const message = await quickScanAsync();
-
-		response.write(message);
-		response.end();
+		void quickScan().then((message) => {
+			response.write(message);
+			response.end();
+		});
 	}
 
-	function addTracing(request: CustomRequest, response: Response, next: NextFunction) {
-		request.log = log.child({ traceId: uuid() }, true);
+	function addTracing(request: ExpressRequest, response: Response, next: NextFunction) {
+		const mutatedRequest = request as CustomRequest;
 
-		request.log.info({ request: getRequestInfo(request, null) });
+		mutatedRequest.log = log.child({ traceId: uuid() }, true);
+
+		mutatedRequest.log.info({ request: getRequestInfo(mutatedRequest, null) });
 
 		next();
 	}
@@ -103,18 +113,21 @@ export function createServer(config: IConfig, log: Bunyan) {
 			const timeBeforeTarpit = Date.now();
 			const shouldTarpit = await maybeTarpitClientAsync(request);
 			if (shouldTarpit) {
-				request.log.info(`delayed for ${(Date.now() - timeBeforeTarpit) / 1000} seconds`);
+				request.log.info(
+					`delayed for ${(Date.now().valueOf() - timeBeforeTarpit.valueOf()) / 1000} seconds`
+				);
 
 				response.writeHead(429);
 
 				// Tarpit for 10 minutes :)
+				// eslint-disable-next-line @typescript-eslint/no-unused-vars
 				for (const _ of Array(60)) {
 					// Send bytes to keep the connection open.
 					response.write('a');
 					await delayAsync(10_000);
 				}
 				request.log.debug(
-					`delayed and tarpitted for ${(Date.now() - timeBeforeTarpit) / 1000} seconds`
+					`delayed and tarpitted for ${(Date.now().valueOf() - timeBeforeTarpit.valueOf()) / 1000} seconds`
 				);
 				response.end();
 			}
@@ -128,22 +141,24 @@ export function createServer(config: IConfig, log: Bunyan) {
 
 	// The forums mention a 5-second timeout before the webhook push is retried, so do this first.
 	// https://community.particle.io/t/electron-and-webhooks-esockettimedout/36413/7
-	function handleAlertResponse(request: CustomRequest, response: Response, next: NextFunction) {
+	function handleAlertResponse(request: ExpressRequest, response: Response, next: NextFunction) {
+		const mutatedRequest = request as CustomRequest;
 		let body = '';
 		const appendBody = () => {
-			body += request.read();
+			// eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+			body += mutatedRequest.read();
 		};
-		request.on('readable', appendBody);
+		mutatedRequest.on('readable', appendBody);
 
-		request.once('end', () => {
-			request.log.info(
+		mutatedRequest.once('end', () => {
+			mutatedRequest.log.info(
 				{
-					request: getRequestInfo(request, body),
+					request: getRequestInfo(mutatedRequest, body),
 				},
 				'request received'
 			);
 
-			request.off('readable', appendBody);
+			mutatedRequest.off('readable', appendBody);
 		});
 
 		response.writeHead(200, { 'Content-Type': 'text/html' });
@@ -152,14 +167,16 @@ export function createServer(config: IConfig, log: Bunyan) {
 		next();
 	}
 
-	function handleAuthentication(request: CustomRequest, response: Response, next: NextFunction) {
-		request.log.debug('authenticating...');
+	function handleAuthentication(request: ExpressRequest, response: Response, next: NextFunction) {
+		const mutatedRequest = request as CustomRequest;
+
+		mutatedRequest.log.debug('authenticating...');
 
 		if (
 			config.basicAuthentication.enabled &&
 			!isAuthenticated(config, request.headers.authorization)
 		) {
-			request.log.error("not auth'd");
+			mutatedRequest.log.error("not auth'd");
 			response.writeHead(401);
 			response.end("not auth'd");
 			return;
@@ -168,7 +185,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		next();
 	}
 
-	function getRequestInfo(request: CustomRequest, body: string) {
+	function getRequestInfo(request: CustomRequest, body: string | null) {
 		return {
 			ip: request.socket.remoteAddress,
 			ipVersion: request.socket.remoteFamily,
@@ -188,12 +205,16 @@ export function createServer(config: IConfig, log: Bunyan) {
 
 	async function maybeTarpitClientAsync(request: CustomRequest): Promise<boolean> {
 		const ipAddress = request.socket.remoteAddress;
+		if (ipAddress === undefined) {
+			return false;
+		}
 
 		if (!leakyBucketByIp.hasOwnProperty(ipAddress)) {
 			const newBucket = new SimpleLeakyBucket(leakyBucketOptions);
 
 			newBucket.once(SimpleLeakyBucketEventKinds.empty, () => {
 				newBucket.dispose();
+				// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
 				delete leakyBucketByIp[ipAddress];
 			});
 
@@ -214,18 +235,20 @@ export function createServer(config: IConfig, log: Bunyan) {
 	}
 
 	function handleError(
-		error: any,
-		request: CustomRequest,
+		error: { message: string },
+		request: ExpressRequest,
 		response: Response,
 		next: NextFunction
 	) {
+		const mutatedRequest = request as CustomRequest;
+
 		if (error.message.includes('EACCES')) {
-			request.log.error(
+			mutatedRequest.log.error(
 				error,
 				'EACCES error - permission denied. You must run the program as admin.'
 			);
 		} else {
-			request.log.error(error, 'server error');
+			mutatedRequest.log.error(error, 'server error');
 		}
 
 		response.status(500);

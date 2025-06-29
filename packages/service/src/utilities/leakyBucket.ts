@@ -19,7 +19,7 @@ export enum SimpleLeakyBucketEventKinds {
 }
 
 export class SimpleLeakyBucketOverflowError extends Error {
-	constructor(message: any) {
+	constructor(message: string | undefined) {
 		super(message);
 
 		// Ensure the name of this error is the same as the class name
@@ -36,9 +36,9 @@ export class SimpleLeakyBucket extends EventEmitter {
 	private maxCapacity: number;
 	private currentVolume: number;
 	private millisecondsPerDecrement: number;
-	private lastUpdateTimeMilliseconds: number;
+	private lastUpdateTimeMilliseconds: number | null;
 	private queue: { resolve: () => void; reject: () => void }[];
-	private timer: NodeJS.Timeout;
+	private timer: NodeJS.Timeout | null;
 	private isDisposing: boolean;
 
 	constructor(options: SimpleLeakyBucketOptions) {
@@ -59,7 +59,7 @@ export class SimpleLeakyBucket extends EventEmitter {
 	 */
 	async incrementAsync(): Promise<boolean> {
 		if (this.isDisposing) {
-			return;
+			return false;
 		}
 
 		this.updateVolume();
@@ -74,13 +74,15 @@ export class SimpleLeakyBucket extends EventEmitter {
 
 		return new Promise<boolean>((resolve, reject) => {
 			this.queue.push({
-				resolve: () => resolve(isOverBurstCapacity),
+				resolve: () => {
+					resolve(isOverBurstCapacity);
+				},
 				reject,
 			});
 
 			if (this.timer === null) {
 				// No `await` - don't wait for the queue to finish processing.
-				this.startProcessingQueueAsync();
+				void this.startProcessingQueueAsync();
 			}
 		});
 	}
@@ -97,10 +99,7 @@ export class SimpleLeakyBucket extends EventEmitter {
 		this.emit(SimpleLeakyBucketEventKinds.disposed);
 	}
 
-	/**
-	 * @private
-	 */
-	async startProcessingQueueAsync() {
+	private async startProcessingQueueAsync() {
 		if (this.timer !== null) {
 			return;
 		}
@@ -114,30 +113,33 @@ export class SimpleLeakyBucket extends EventEmitter {
 	}
 
 	/**
-	 * @private
 	 * @summary Returns a Promise which resolves immediately if the bucket is below the burst threshold,
 	 * or a Promise which resolves after leaking below the burst threshold.
 	 */
-	async processQueueAsync(): Promise<boolean> {
+	private async processQueueAsync(): Promise<boolean> {
 		if (this.queue.length === 0 && this.currentVolume === 0) {
 			this.timer = null;
 
-			return new Promise(resolve => resolve(false));
+			return new Promise((resolve) => {
+				resolve(false);
+			});
 		}
 
 		this.updateVolume();
 
 		const isBelowBurstCapacity = this.currentVolume < this.burstCapacity;
 		if (this.queue.length > 0 && isBelowBurstCapacity) {
-			this.queue.pop().resolve();
+			this.queue.pop()?.resolve();
 
-			return new Promise(resolve => resolve(true));
+			return new Promise((resolve) => {
+				resolve(true);
+			});
 		} else {
 			const timeToWait = isBelowBurstCapacity
 				? 0
 				: this.currentVolume * this.millisecondsPerDecrement;
 
-			return new Promise(resolve => {
+			return new Promise((resolve) => {
 				this.timer = setTimeout(() => {
 					resolve(true);
 				}, timeToWait);
@@ -145,10 +147,7 @@ export class SimpleLeakyBucket extends EventEmitter {
 		}
 	}
 
-	/**
-	 * @private
-	 */
-	async updateVolume() {
+	private updateVolume() {
 		const now = Date.now();
 
 		if (this.lastUpdateTimeMilliseconds === null) {
