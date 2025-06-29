@@ -17,6 +17,7 @@ export interface EmailAlertMethod {
 export interface GotifyAlertMethod {
 	type: 'gotify';
 	url: string;
+	apiKey: string;
 }
 
 type AlertMethod = (EmailAlertMethod | GotifyAlertMethod) & { name: string; type: string };

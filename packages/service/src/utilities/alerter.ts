@@ -1,4 +1,5 @@
 import * as Bunyan from 'bunyan';
+import { GotifyClient } from 'gotify-client';
 import { AlertType, IConfig, type User } from '../types/IConfig';
 import { IDevice } from '../types/IDevice';
 import IEmail from '../types/IEmail';
@@ -237,7 +238,16 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 
 		const gotifyAlertMethods = alertMethods.filter((am) => am.type === 'gotify');
 		if (gotifyAlertMethods.length > 0) {
-			console.info('Not implemented yet!');
+			for (const alertMethod of gotifyAlertMethods) {
+				const client = new GotifyClient(alertMethod.url, {
+					app: alertMethod.apiKey,
+				});
+
+				client.message.createMessage({
+					title: 'IOT-SEC',
+					message,
+				});
+			}
 		}
 	}
 

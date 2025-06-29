@@ -16,6 +16,7 @@ const Config: IConfig = {
 					name: "Alice's Gotify",
 					type: 'gotify',
 					url: 'https://example.com/gotify/',
+					apiKey: 'super_secure_key',
 				},
 				{
 					name: "Alice's Email",
