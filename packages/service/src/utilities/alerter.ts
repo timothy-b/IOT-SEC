@@ -85,13 +85,12 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 					},
 				})),
 			transitionWindowSize: 3,
+			initialStateBiasStatus: DeviceStates.present,
 		});
 
 		let remainingPollCount = 15;
 		const pollingIntervalInSeconds = 5;
 		while (remainingPollCount-- > 0) {
-			await delayAsync(pollingIntervalInSeconds * 1000);
-
 			const detectedDevices = await scanForKnownDevices();
 			const detectedMacs = new Set(detectedDevices.map((d) => d.mac));
 
@@ -101,6 +100,8 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 					detectedMacs.has(mac) ? DeviceStates.present : DeviceStates.absent,
 				);
 			}
+
+			await delayAsync(pollingIntervalInSeconds * 1000);
 		}
 
 		const nonTransitionedDevices = smoother.getNonTransitionedTrackedItems();

@@ -6,6 +6,12 @@ interface IStatusSmoothingFunctionMachineConfig<TStatus extends string> {
 		onFirstTransition: (newStatus: TStatus) => void;
 	}[];
 	transitionWindowSize: number;
+
+	/**
+	 * If initial state is `null`, and this status is added, set initialStatus to it and reset window.
+	 * Similar concept to pull-down resistor; set this to a value which cannot have false a positive.
+	 */
+	initialStateBiasStatus?: TStatus;
 }
 
 interface IItemStatus<TStatus extends string> {
@@ -39,8 +45,8 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 		if (!config.transitionWindowSize) {
 			throw Error(
 				`${nameof<IStatusSmoothingFunctionMachineConfig<TStatus>>(
-					'transitionWindowSize'
-				)} is required.`
+					'transitionWindowSize',
+				)} is required.`,
 			);
 		}
 
@@ -54,8 +60,17 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 
 		this.state[key].statusSteps.push(status);
 
-		// TODO: if initial status is null and we detect device, then set initial status to "present"
-		// and reset window
+		// If initial status is null and we get the bias status,
+		// then set initial status to the bias.
+		if (
+			this.state[key].initialStatus === null &&
+			this.config.initialStateBiasStatus &&
+			status === this.config.initialStateBiasStatus
+		) {
+			this.state[key].initialStatus = this.config.initialStateBiasStatus;
+			return;
+		}
+
 		if (this.state[key].statusSteps.length < this.config.transitionWindowSize) {
 			// If the window isn't full, then we don't have anything else to do yet.
 			return;
@@ -65,7 +80,7 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 		if (
 			this.state[key].statusSteps
 				.slice(this.config.transitionWindowSize * -1)
-				.every(s => s === status)
+				.every((s) => s === status)
 		) {
 			if (this.state[key].initialStatus === null) {
 				// If we don't have an initial status yet, then set it.
@@ -95,5 +110,7 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 	}
 }
 
-export { IStatusSmoothingFunctionMachineConfig as IStateSmoothingFunctionMachineConfig, StateSmoothingFunctionMachine };
-
+export {
+	IStatusSmoothingFunctionMachineConfig as IStateSmoothingFunctionMachineConfig,
+	StateSmoothingFunctionMachine,
+};
