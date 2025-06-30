@@ -1,7 +1,9 @@
+import arp, { type IArpTable, type IArpTableRow } from '@network-utils/arp-lookup';
 import * as Bunyan from 'bunyan';
 import type { MessageHeaders } from 'emailjs';
 import { GotifyClient } from 'gotify-client';
-import _ from 'lodash';
+import _, { type Dictionary } from 'lodash';
+import ping from 'ping';
 import { AlertType, IConfig, type IDevice, type User } from '../types/IConfig';
 import { delayAsync } from './delay';
 import { sendEmailAsync } from './email';
@@ -88,10 +90,16 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			initialStateBiasStatus: DeviceStates.present,
 		});
 
+		// prime the arp table, just in case
+		await arpscanDevicesAsync();
+
+		// TODO: extend @network-utils/arp-lookup to get device names, and use those for mapping to devices.
+		const arpTable = await arp.getTable();
+
 		let remainingPollCount = 15;
 		const pollingIntervalInSeconds = 5;
 		while (remainingPollCount-- > 0) {
-			const detectedDevices = await scanForKnownDevices();
+			const detectedDevices = await scanForKnownDevices2(arpTable);
 			const detectedMacs = new Set(detectedDevices.map((d) => d.mac));
 
 			for (const mac of config.users.flatMap((u) => u.devices).map((d) => d.mac)) {
@@ -213,6 +221,42 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const detectedMacs = new Set(detectedDevices.map((d) => d.mac));
 
 		return config.users.flatMap((u) => u.devices).filter((kd) => detectedMacs.has(kd.mac));
+	}
+
+	async function scanForKnownDevices2(arpTable: IArpTable): Promise<IDevice[]> {
+		const knownDevices = config.users.flatMap((u) => u.devices);
+
+		const arpRowByMac: Dictionary<IArpTableRow | undefined> = _.keyBy(arpTable, (a) =>
+			a.mac.toLowerCase(),
+		);
+
+		const knownDevicesWithIp = knownDevices
+			.filter((d) => arpRowByMac[d.mac.toLowerCase()] !== undefined)
+			.map((d) => ({
+				...d,
+				ipAddress: arpRowByMac[d.mac.toLowerCase()]?.ip ?? '',
+			}));
+
+		return await pingForDevices(knownDevicesWithIp);
+	}
+
+	async function pingForDevices(
+		devices: (IDevice & { ipAddress: string })[],
+	): Promise<IDevice[]> {
+		const ipProbeResults = await Promise.all(
+			devices.map((d) => ping.promise.probe(d.ipAddress)),
+		);
+
+		const isAliveByIpAddress = ipProbeResults.reduce<Record<string, boolean>>((prev, cur) => {
+			if (!cur.numeric_host) {
+				return prev;
+			}
+
+			prev[cur.numeric_host] = cur.alive;
+			return prev;
+		}, {});
+
+		return devices.filter((d) => isAliveByIpAddress[d.ipAddress]);
 	}
 
 	async function sendSimpleAlert(users: User[], type: AlertType): Promise<void> {
