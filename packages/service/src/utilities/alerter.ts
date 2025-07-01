@@ -3,11 +3,11 @@ import * as Bunyan from 'bunyan';
 import type { MessageHeaders } from 'emailjs';
 import { GotifyClient } from 'gotify-client';
 import _, { type Dictionary } from 'lodash';
+import { execSync } from 'node:child_process';
 import ping from 'ping';
 import { AlertType, IConfig, type IDevice, type User } from '../types/IConfig';
 import { delayAsync } from './delay';
 import { sendEmailAsync } from './email';
-import { arpscanDevicesAsync } from './scanner';
 import { StateSmoothingFunctionMachine } from './stateSmoothingFunctionMachine';
 
 const defaultAlertMessages: { [alertType in AlertType]: string } = {
@@ -23,6 +23,19 @@ const alertTypes = Object.keys(defaultAlertMessages).reduce(
 ) as { [alertType in AlertType]: AlertType };
 
 export function createAlerter(config: IConfig, log: Bunyan) {
+	const userByMac = Object.freeze(
+		config.users.reduce<Record<string, User>>((prev, cur) => {
+			for (const device of cur.devices) {
+				prev[device.mac] = cur;
+			}
+			return prev;
+		}, {}),
+	);
+
+	function userFromMacs(macs: Set<string>) {
+		return new Set(Array.from(macs).map((m) => userByMac[m].name));
+	}
+
 	async function runAlerter(): Promise<void> {
 		const { homeMacs, awayMacs, arrivedMacs, departedMacs } =
 			await pollForDevicePresenceTransitions();
@@ -31,13 +44,25 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	}
 
 	async function quickScan(): Promise<string> {
-		const knownDevices = await scanForKnownDevices();
+		// TODO: don't hardcode this
+		execSync('nmap -sn 10.0.0.1/24');
 
-		if (knownDevices.length === 0) {
+		// TODO: extend @network-utils/arp-lookup to get device names, and use those for mapping to devices in addition to mac address.
+		const arpTable = await arp.getTable();
+
+		const homeDevices = await scanForKnownDevices(arpTable);
+
+		if (homeDevices.length === 0) {
 			return 'nobody home';
 		}
 
-		return `home: ${knownDevices.map((d) => d.name).join(', ')}`;
+		const homeDeviceMacs = new Set(homeDevices.map((d) => d.mac));
+
+		const userByDevice = config.users.filter((u) =>
+			u.devices.some((d) => homeDeviceMacs.has(d.mac)),
+		);
+
+		return `home: ${userByDevice.map((u) => u.name).join(', ')}`;
 	}
 
 	type DeviceState = 'absent' | 'present';
@@ -90,16 +115,18 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			initialStateBiasStatus: DeviceStates.present,
 		});
 
-		// prime the arp table, just in case
-		await arpscanDevicesAsync();
+		// use nmap to prime the arp table. Arpscan won't work since it only gets populated via unicast.
+		// TODO: don't hardcode this
+		execSync('nmap -sn 10.0.0.1/24');
 
-		// TODO: extend @network-utils/arp-lookup to get device names, and use those for mapping to devices.
+		// TODO: extend @network-utils/arp-lookup to get device names, and use those for mapping to devices in addition to mac address.
 		const arpTable = await arp.getTable();
 
+		// TODO: add "armed" mode and don't poll, just alert when opened.
 		let remainingPollCount = 15;
 		const pollingIntervalInSeconds = 5;
 		while (remainingPollCount-- > 0) {
-			const detectedDevices = await scanForKnownDevices2(arpTable);
+			const detectedDevices = await scanForKnownDevices(arpTable);
 			const detectedMacs = new Set(detectedDevices.map((d) => d.mac));
 
 			for (const mac of config.users.flatMap((u) => u.devices).map((d) => d.mac)) {
@@ -176,11 +203,11 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const lines = [];
 
 		if (arrivedMacs.size > 0) {
-			lines.push(buildLineForMacs('arrived: ', arrivedMacs));
+			lines.push(buildLineForMacs('arrived: ', userFromMacs(arrivedMacs)));
 		}
 
 		if (departedMacs.size > 0) {
-			lines.push(buildLineForMacs('departed: ', departedMacs));
+			lines.push(buildLineForMacs('departed: ', userFromMacs(departedMacs)));
 		}
 
 		return lines.join('\n');
@@ -194,15 +221,15 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const lines = [];
 
 		if (homeMacs.size > 0) {
-			lines.push(buildLineForMacs('home: ', homeMacs));
+			lines.push(buildLineForMacs('home: ', userFromMacs(homeMacs)));
 		}
 
 		if (arrivedMacs.size > 0) {
-			lines.push(buildLineForMacs('arrived: ', arrivedMacs));
+			lines.push(buildLineForMacs('arrived: ', userFromMacs(arrivedMacs)));
 		}
 
 		if (departedMacs.size > 0) {
-			lines.push(buildLineForMacs('departed: ', departedMacs));
+			lines.push(buildLineForMacs('departed: ', userFromMacs(departedMacs)));
 		}
 
 		return lines.join('\n');
@@ -216,14 +243,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		return `${linePrefix}${userNamesForMacs.join(', ')}`;
 	}
 
-	async function scanForKnownDevices(): Promise<IDevice[]> {
-		const detectedDevices = await arpscanDevicesAsync();
-		const detectedMacs = new Set(detectedDevices.map((d) => d.mac));
-
-		return config.users.flatMap((u) => u.devices).filter((kd) => detectedMacs.has(kd.mac));
-	}
-
-	async function scanForKnownDevices2(arpTable: IArpTable): Promise<IDevice[]> {
+	async function scanForKnownDevices(arpTable: IArpTable): Promise<IDevice[]> {
 		const knownDevices = config.users.flatMap((u) => u.devices);
 
 		const arpRowByMac: Dictionary<IArpTableRow | undefined> = _.keyBy(arpTable, (a) =>
