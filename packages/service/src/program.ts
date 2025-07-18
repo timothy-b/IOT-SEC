@@ -7,7 +7,7 @@ function main() {
 	const { bunyan, ...rest } = Config;
 	const log = createLogger(bunyan);
 	db.data = db.data || rest;
-	db.write();
+	void db.write();
 
 	// TODO: verify uniqueness of user names
 
@@ -15,7 +15,9 @@ function main() {
 	const server = runServer();
 
 	const { port } = Config.localhost;
-	server.listen(port, () => log.info(`Server is listening on port ${port}`));
+	server.listen(port, () => {
+		log.info(`Server is listening on port ${port}`);
+	});
 }
 
 main();

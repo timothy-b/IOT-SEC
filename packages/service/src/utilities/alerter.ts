@@ -22,6 +22,13 @@ const alertTypes = Object.keys(defaultAlertMessages).reduce(
 	{},
 ) as { [alertType in AlertType]: AlertType };
 
+type DeviceState = 'absent' | 'present';
+
+const DeviceStates: { [deviceState in DeviceState]: DeviceState } = {
+	absent: 'absent',
+	present: 'present',
+};
+
 export function createAlerter(config: IConfig, log: Bunyan) {
 	const userByMac = Object.freeze(
 		config.users.reduce<Record<string, User>>((prev, cur) => {
@@ -31,16 +38,29 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			return prev;
 		}, {}),
 	);
+	let isPolling = false;
+	let shouldExtendPolling = false;
+	// poll for 5 minutes
+	// TODO: make this duration configurable
+	// TODO: add continuous polling mode instead of triggered polling mode?
+	const pollCount = 48;
+	const pollingIntervalInSeconds = 5;
 
-	function userFromMacs(macs: Set<string>) {
+	function userFromMacs(macs: Set<string>): Set<string> {
 		return new Set(Array.from(macs).map((m) => userByMac[m].name));
 	}
 
 	async function runAlerter(): Promise<void> {
-		const { homeMacs, awayMacs, arrivedMacs, departedMacs } =
-			await pollForDevicePresenceTransitions();
+		if (isPolling) {
+			shouldExtendPolling = true;
+			return;
+		}
 
-		await sendSummaryMessages(homeMacs, awayMacs, arrivedMacs, departedMacs);
+		isPolling = true;
+
+		await pollForDevicePresenceTransitions();
+
+		isPolling = false;
 	}
 
 	async function quickScan(): Promise<string> {
@@ -65,35 +85,20 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		return `home: ${userByDevice.map((u) => u.name).join(', ')}`;
 	}
 
-	type DeviceState = 'absent' | 'present';
-
-	const DeviceStates: { [deviceState in DeviceState]: DeviceState } = {
-		absent: 'absent',
-		present: 'present',
-	};
-
 	function getUsersByMac(users: User[], mac: string): User[] {
 		return users.filter((u) => u.devices.some((d) => d.mac === mac));
 	}
 
-	// TODO: instead of kicking off a new polling session on every request,
-	// we probably want to prolong an existing polling singleton
-	// that way, transition results are coalesced across triggering events,
-	// and we don't spam the receiver with erroneous transitions.
-	async function pollForDevicePresenceTransitions(): Promise<{
-		homeMacs: Set<string>;
-		awayMacs: Set<string>;
-		arrivedMacs: Set<string>;
-		departedMacs: Set<string>;
-	}> {
+	async function pollForDevicePresenceTransitions(): Promise<void> {
 		const arrivedMacs = new Set<string>();
 		const departedMacs = new Set<string>();
+		const transitionWindowSize = 3;
 		const smoother = new StateSmoothingFunctionMachine<DeviceState>({
 			trackedItems: config.users
 				.flatMap((u) => u.devices)
 				.map((device) => ({
 					key: device.mac,
-					onFirstTransition: async (newStateName) => {
+					onTransition: async (newStateName) => {
 						let alertType: AlertType;
 						switch (newStateName) {
 							case DeviceStates.absent:
@@ -108,10 +113,23 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 								throw Error(`Unhandled state" ${newStateName}`);
 						}
 
-						await sendSimpleAlert(getUsersByMac(config.users, device.mac), alertType);
+						const transitionedUsers = getUsersByMac(config.users, device.mac);
+						// message transitioned user
+						await sendSimpleAlert(transitionedUsers, alertType);
+
+						// message other users
+						const message = buildTransitionedSummaryMessage(
+							new Set(alertType === alertTypes.arrival ? [device.mac] : []),
+							new Set(alertType === alertTypes.departure ? [device.mac] : []),
+						);
+						const transitionedUsernames = new Set(transitionedUsers.map((u) => u.name));
+						await sendAlertWithMessage(
+							config.users.filter((u) => !transitionedUsernames.has(u.name)),
+							message,
+						);
 					},
 				})),
-			transitionWindowSize: 3,
+			transitionWindowSize,
 			initialStateBiasStatus: DeviceStates.present,
 		});
 
@@ -122,13 +140,25 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		// TODO: extend @network-utils/arp-lookup to get device names, and use those for mapping to devices in addition to mac address.
 		const arpTable = await arp.getTable();
 
-		// TODO: add "armed" mode and don't poll, just alert when opened.
-		let remainingPollCount = 15;
-		const pollingIntervalInSeconds = 5;
+		let remainingPollCount = pollCount;
+		let currentPollCount = 0;
+		let hasDetectedDevice = false;
 		while (remainingPollCount-- > 0) {
-			const detectedDevices = await scanForKnownDevices(arpTable);
-			const detectedMacs = new Set(detectedDevices.map((d) => d.mac));
+			if (shouldExtendPolling) {
+				remainingPollCount = pollCount;
+				shouldExtendPolling = false;
+			}
 
+			const detectedDevices = await scanForKnownDevices(arpTable);
+
+			hasDetectedDevice = hasDetectedDevice || detectedDevices.length > 0;
+
+			// if end of first window and nobody is home, then alert
+			if (++currentPollCount === transitionWindowSize && !hasDetectedDevice) {
+				await sendSimpleAlert(config.users, alertTypes.intruder);
+			}
+
+			const detectedMacs = new Set(detectedDevices.map((d) => d.mac));
 			for (const mac of config.users.flatMap((u) => u.devices).map((d) => d.mac)) {
 				smoother.addStatusStep(
 					mac,
@@ -138,91 +168,13 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 
 			await delayAsync(pollingIntervalInSeconds * 1000);
 		}
-
-		const nonTransitionedDevices = smoother.getNonTransitionedTrackedItems();
-		const homeMacs = new Set<string>();
-		const awayMacs = new Set<string>();
-		for (const device of nonTransitionedDevices) {
-			if (device.status === DeviceStates.absent) {
-				awayMacs.add(device.key);
-			} else {
-				// If they went back-and-forth, then they're practically home.
-				homeMacs.add(device.key);
-
-				if (arrivedMacs.has(device.key)) {
-					arrivedMacs.delete(device.key);
-				}
-
-				if (departedMacs.has(device.key)) {
-					departedMacs.delete(device.key);
-				}
-			}
-		}
-
-		return { homeMacs, awayMacs, arrivedMacs, departedMacs };
 	}
 
-	async function sendSummaryMessages(
-		homeMacs: Set<string>,
-		awayMacs: Set<string>,
+	function buildTransitionedSummaryMessage(
 		arrivedMacs: Set<string>,
 		departedMacs: Set<string>,
-	): Promise<void> {
-		const homeUsers = config.users.filter((u) => u.devices.some((d) => homeMacs.has(d.mac)));
-
-		if (arrivedMacs.size === 0 && departedMacs.size === 0) {
-			if (homeMacs.size === 0) {
-				await sendSimpleAlert(config.users, alertTypes.intruder);
-			} else {
-				await sendSimpleAlert(homeUsers, alertTypes.doorOpen);
-			}
-		} else {
-			if (homeMacs.size > 0) {
-				await sendAlertWithMessage(
-					homeUsers,
-					buildHomeSummaryMessage(arrivedMacs, departedMacs),
-				);
-			}
-		}
-
-		if (
-			awayMacs.size > 0 &&
-			(homeMacs.size > 0 || arrivedMacs.size > 0 || departedMacs.size > 0)
-		) {
-			const awayUsers = config.users.filter((u) =>
-				u.devices.some((d) => awayMacs.has(d.mac)),
-			);
-			await sendAlertWithMessage(
-				awayUsers,
-				buildAwaySummaryMessage(homeMacs, arrivedMacs, departedMacs),
-			);
-		}
-	}
-
-	function buildHomeSummaryMessage(arrivedMacs: Set<string>, departedMacs: Set<string>): string {
-		const lines = [];
-
-		if (arrivedMacs.size > 0) {
-			lines.push(buildLineForMacs('arrived: ', userFromMacs(arrivedMacs)));
-		}
-
-		if (departedMacs.size > 0) {
-			lines.push(buildLineForMacs('departed: ', userFromMacs(departedMacs)));
-		}
-
-		return lines.join('\n');
-	}
-
-	function buildAwaySummaryMessage(
-		homeMacs: Set<string>,
-		arrivedMacs: Set<string> = new Set(),
-		departedMacs: Set<string> = new Set(),
 	): string {
 		const lines = [];
-
-		if (homeMacs.size > 0) {
-			lines.push(buildLineForMacs('home: ', userFromMacs(homeMacs)));
-		}
 
 		if (arrivedMacs.size > 0) {
 			lines.push(buildLineForMacs('arrived: ', userFromMacs(arrivedMacs)));

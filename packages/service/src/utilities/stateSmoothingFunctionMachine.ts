@@ -3,7 +3,7 @@ const nameof = <T>(name: keyof T) => name;
 interface IStatusSmoothingFunctionMachineConfig<TStatus extends string> {
 	trackedItems: {
 		key: string;
-		onFirstTransition: (newStatus: TStatus) => void;
+		onTransition: (newStatus: TStatus) => void;
 	}[];
 	transitionWindowSize: number;
 
@@ -23,7 +23,7 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 	private state: {
 		[key: string]: {
 			statusSteps: TStatus[];
-			firstTransitionCallback: (newStatus: TStatus) => void;
+			transitionCallback: (newStatus: TStatus) => void;
 			initialStatus: TStatus | null;
 			hasTransitioned: boolean;
 		};
@@ -36,7 +36,7 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 		for (const item of config.trackedItems) {
 			this.state[item.key] = {
 				statusSteps: [],
-				firstTransitionCallback: item.onFirstTransition,
+				transitionCallback: item.onTransition,
 				initialStatus: null,
 				hasTransitioned: false,
 			};
@@ -86,13 +86,12 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 				// If we don't have an initial status yet, then set it.
 				this.state[key].initialStatus = status;
 			} else if (
-				!this.state[key].hasTransitioned &&
 				status !== this.state[key].initialStatus
 			) {
 				// Otherwise, if the current window's status is different than the initial status,
 				// then we've had a transition.
 				this.state[key].hasTransitioned = true;
-				this.state[key].firstTransitionCallback(status);
+				this.state[key].transitionCallback(status);
 			}
 		}
 	}

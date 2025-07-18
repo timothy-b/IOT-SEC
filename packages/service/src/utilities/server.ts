@@ -32,6 +32,8 @@ export function createServer(config: IConfig, log: Bunyan) {
 		millisecondsPerDecrement: 1000,
 	};
 
+	const { runAlerter, quickScan } = createAlerter(config, log);
+
 	function runServer(): Application {
 		const app = express();
 
@@ -44,9 +46,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			handleAuthentication,
 		);
 
-		app.post('/iotsec/alertDoorOpened', handleAlertResponse, (request: ExpressRequest) => {
-			const { runAlerter } = createAlerter(config, (request as CustomRequest).log);
-
+		app.post('/iotsec/alertDoorOpened', handleAlertResponse, () => {
 			void runAlerter();
 		});
 
@@ -82,8 +82,6 @@ export function createServer(config: IConfig, log: Bunyan) {
 	}
 
 	function quickScanAsync(request: ExpressRequest, response: Response) {
-		const { quickScan } = createAlerter(config, (request as CustomRequest).log);
-
 		void quickScan().then((message) => {
 			response.write(message);
 			response.end();
