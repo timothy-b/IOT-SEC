@@ -4,3 +4,5 @@ node_modules/
 *.less.d.ts
 *.json
 *.yml
+
+/.nx/workspace-data
