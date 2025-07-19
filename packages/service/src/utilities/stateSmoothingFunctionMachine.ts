@@ -24,7 +24,7 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 		[key: string]: {
 			statusSteps: TStatus[];
 			transitionCallback: (newStatus: TStatus) => void;
-			initialStatus: TStatus | null;
+			currentStatus: TStatus | null;
 			hasTransitioned: boolean;
 		};
 	};
@@ -37,7 +37,7 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 			this.state[item.key] = {
 				statusSteps: [],
 				transitionCallback: item.onTransition,
-				initialStatus: null,
+				currentStatus: null,
 				hasTransitioned: false,
 			};
 		}
@@ -63,11 +63,11 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 		// If initial status is null and we get the bias status,
 		// then set initial status to the bias.
 		if (
-			this.state[key].initialStatus === null &&
+			this.state[key].currentStatus === null &&
 			this.config.initialStateBiasStatus &&
 			status === this.config.initialStateBiasStatus
 		) {
-			this.state[key].initialStatus = this.config.initialStateBiasStatus;
+			this.state[key].currentStatus = this.config.initialStateBiasStatus;
 			return;
 		}
 
@@ -82,14 +82,15 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 				.slice(this.config.transitionWindowSize * -1)
 				.every((s) => s === status)
 		) {
-			if (this.state[key].initialStatus === null) {
+			if (this.state[key].currentStatus === null) {
 				// If we don't have an initial status yet, then set it.
-				this.state[key].initialStatus = status;
+				this.state[key].currentStatus = status;
 			} else if (
-				status !== this.state[key].initialStatus
+				status !== this.state[key].currentStatus
 			) {
 				// Otherwise, if the current window's status is different than the initial status,
 				// then we've had a transition.
+				this.state[key].currentStatus = status;
 				this.state[key].hasTransitioned = true;
 				this.state[key].transitionCallback(status);
 			}
@@ -101,7 +102,7 @@ class StateSmoothingFunctionMachine<TStatus extends string> {
 
 		for (const key of Object.keys(this.state)) {
 			if (!this.state[key].hasTransitioned) {
-				nonTransitioned.push({ key, status: this.state[key].initialStatus });
+				nonTransitioned.push({ key, status: this.state[key].currentStatus });
 			}
 		}
 
