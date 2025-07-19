@@ -30,14 +30,6 @@ const DeviceStates: { [deviceState in DeviceState]: DeviceState } = {
 };
 
 export function createAlerter(config: IConfig, log: Bunyan) {
-	const userByMac = Object.freeze(
-		config.users.reduce<Record<string, User>>((prev, cur) => {
-			for (const device of cur.devices) {
-				prev[device.mac] = cur;
-			}
-			return prev;
-		}, {}),
-	);
 	let isPolling = false;
 	let shouldExtendPolling = false;
 	// poll for 5 minutes
@@ -45,10 +37,6 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	// TODO: add continuous polling mode instead of triggered polling mode?
 	const pollCount = 48;
 	const pollingIntervalInSeconds = 5;
-
-	function userFromMacs(macs: Set<string>): Set<string> {
-		return new Set(Array.from(macs).map((m) => userByMac[m].name));
-	}
 
 	async function runAlerter(): Promise<void> {
 		if (isPolling) {
@@ -130,7 +118,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 					},
 				})),
 			transitionWindowSize,
-			initialStateBiasStatus: DeviceStates.present,
+			initialStateBiasStatus: DeviceStates.absent,
 		});
 
 		// use nmap to prime the arp table. Arpscan won't work since it only gets populated via unicast.
@@ -177,11 +165,11 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		const lines = [];
 
 		if (arrivedMacs.size > 0) {
-			lines.push(buildLineForMacs('arrived: ', userFromMacs(arrivedMacs)));
+			lines.push(buildLineForMacs('arrived: ', arrivedMacs));
 		}
 
 		if (departedMacs.size > 0) {
-			lines.push(buildLineForMacs('departed: ', userFromMacs(departedMacs)));
+			lines.push(buildLineForMacs('departed: ', departedMacs));
 		}
 
 		return lines.join('\n');
