@@ -22,7 +22,7 @@ export default defineConfig([
 			sourceType: 'module',
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: ['*.ts', '*.mjs', 'tests/*.ts'],
+					allowDefaultProject: ['*.ts', '*.mjs', '*.test.ts'],
 				},
 				tsConfigRootDir: '.',
 			},

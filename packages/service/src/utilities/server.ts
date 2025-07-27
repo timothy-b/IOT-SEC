@@ -57,7 +57,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			response.end();
 		});
 
-		app.get('/iotsec/quickScan', quickScanAsync);
+		app.get('/iotsec/quickScan', handleQuickScan);
 
 		// TODO: also make a request to the particle to make sure that it responds.
 		app.get('/iotsec/up', (request: ExpressRequest, response: Response) => {
@@ -81,11 +81,10 @@ export function createServer(config: IConfig, log: Bunyan) {
 		);
 	}
 
-	function quickScanAsync(request: ExpressRequest, response: Response) {
-		void quickScan().then((message) => {
-			response.write(message);
-			response.end();
-		});
+	function handleQuickScan(request: ExpressRequest, response: Response) {
+		const message = quickScan();
+		response.write(message);
+		response.end();
 	}
 
 	function addTracing(request: ExpressRequest, response: Response, next: NextFunction) {

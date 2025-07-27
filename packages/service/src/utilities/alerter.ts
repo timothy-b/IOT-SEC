@@ -1,14 +1,12 @@
-import arp, { type IArpTable, type IArpTableRow } from '@network-utils/arp-lookup';
 import * as Bunyan from 'bunyan';
 import type { MessageHeaders } from 'emailjs';
 import { GotifyClient } from 'gotify-client';
-import _, { type Dictionary } from 'lodash';
-import { execSync } from 'node:child_process';
-import ping from 'ping';
-import { AlertType, IConfig, type IDevice, type User } from '../types/IConfig';
+import _ from 'lodash';
+import { AlertType, IConfig, type User } from '../types/IConfig';
 import { delayAsync } from './delay';
 import { sendEmailAsync } from './email';
 import { StateSmoothingFunctionMachine } from './stateSmoothingFunctionMachine';
+import { getUpHosts } from './scanner2';
 
 const defaultAlertMessages: { [alertType in AlertType]: string } = {
 	intruder: 'The fortress is in peril.',
@@ -51,14 +49,12 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		isPolling = false;
 	}
 
-	async function quickScan(): Promise<string> {
-		// TODO: don't hardcode this
-		execSync('nmap -sn 10.0.0.1/24');
-
-		// TODO: extend @network-utils/arp-lookup to get device names, and use those for mapping to devices in addition to mac address.
-		const arpTable = await arp.getTable();
-
-		const homeDevices = await scanForKnownDevices(arpTable);
+	function quickScan(): string {
+		const upHosts = getUpHosts();
+		const upHostMacs = new Set(upHosts.map((h) => h.mac));
+		const homeDevices = config.users
+			.flatMap((u) => u.devices)
+			.filter((d) => upHostMacs.has(d.mac));
 
 		if (homeDevices.length === 0) {
 			return 'nobody home';
@@ -121,13 +117,6 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			initialStateBiasStatus: DeviceStates.absent,
 		});
 
-		// use nmap to prime the arp table. Arpscan won't work since it only gets populated via unicast.
-		// TODO: don't hardcode this
-		execSync('nmap -sn 10.0.0.1/24');
-
-		// TODO: extend @network-utils/arp-lookup to get device names, and use those for mapping to devices in addition to mac address.
-		const arpTable = await arp.getTable();
-
 		let remainingPollCount = pollCount;
 		let currentPollCount = 0;
 		let hasDetectedDevice = false;
@@ -137,7 +126,11 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 				shouldExtendPolling = false;
 			}
 
-			const detectedDevices = await scanForKnownDevices(arpTable);
+			const upHosts = getUpHosts();
+			const upHostMacs = new Set(upHosts.map((h) => h.mac));
+			const detectedDevices = config.users
+				.flatMap((u) => u.devices)
+				.filter((d) => upHostMacs.has(d.mac));
 
 			hasDetectedDevice = hasDetectedDevice || detectedDevices.length > 0;
 
@@ -181,42 +174,6 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 			.map((u) => u.name);
 
 		return `${linePrefix}${userNamesForMacs.join(', ')}`;
-	}
-
-	async function scanForKnownDevices(arpTable: IArpTable): Promise<IDevice[]> {
-		const knownDevices = config.users.flatMap((u) => u.devices);
-
-		const arpRowByMac: Dictionary<IArpTableRow | undefined> = _.keyBy(arpTable, (a) =>
-			a.mac.toLowerCase(),
-		);
-
-		const knownDevicesWithIp = knownDevices
-			.filter((d) => arpRowByMac[d.mac.toLowerCase()] !== undefined)
-			.map((d) => ({
-				...d,
-				ipAddress: arpRowByMac[d.mac.toLowerCase()]?.ip ?? '',
-			}));
-
-		return await pingForDevices(knownDevicesWithIp);
-	}
-
-	async function pingForDevices(
-		devices: (IDevice & { ipAddress: string })[],
-	): Promise<IDevice[]> {
-		const ipProbeResults = await Promise.all(
-			devices.map((d) => ping.promise.probe(d.ipAddress)),
-		);
-
-		const isAliveByIpAddress = ipProbeResults.reduce<Record<string, boolean>>((prev, cur) => {
-			if (!cur.numeric_host) {
-				return prev;
-			}
-
-			prev[cur.numeric_host] = cur.alive;
-			return prev;
-		}, {});
-
-		return devices.filter((d) => isAliveByIpAddress[d.ipAddress]);
 	}
 
 	async function sendSimpleAlert(users: User[], type: AlertType): Promise<void> {
