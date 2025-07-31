@@ -25,6 +25,7 @@
 		"express": "^4.21.1",
 		"extensionless": "^1.9.9",
 		"gotify-client": "^0.4.2",
+		"ical.js": "^2.2.0",
 		"lodash": "^4.17.21",
 		"lowdb": "^3.0.0",
 		"ping": "^0.4.4",

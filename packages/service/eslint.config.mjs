@@ -4,6 +4,7 @@ import tsParser from '@typescript-eslint/parser';
 import { importX } from 'eslint-plugin-import-x';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
+import { process } from 'node:process';
 
 export default defineConfig([
 	{
@@ -22,9 +23,9 @@ export default defineConfig([
 			sourceType: 'module',
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: ['*.ts', '*.mjs', '*.test.ts'],
+					allowDefaultProject: ['*.ts', '*.mjs', '*.test.ts', '*.d.ts'],
 				},
-				tsConfigRootDir: '.',
+				tsConfigRootDir: process.cwd(),
 			},
 		},
 		files: ['**/*.{js,mjs,cjs,jsx,mjsx,ts,tsx,mtsx}'],

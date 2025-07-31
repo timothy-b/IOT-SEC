@@ -32,7 +32,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		millisecondsPerDecrement: 1000,
 	};
 
-	const { runAlerter, quickScan } = createAlerter(config, log);
+	const alerter = createAlerter(config, log);
 
 	function runServer(): Application {
 		const app = express();
@@ -47,7 +47,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 		);
 
 		app.post('/iotsec/alertDoorOpened', handleAlertResponse, () => {
-			void runAlerter();
+			void alerter.runAlerter();
 		});
 
 		app.get('/iotsec/config', (request: ExpressRequest, response: Response) => {
@@ -63,6 +63,21 @@ export function createServer(config: IConfig, log: Bunyan) {
 		app.get('/iotsec/up', (request: ExpressRequest, response: Response) => {
 			response.writeHead(200);
 			response.end();
+		});
+
+		app.post('/iotsec/setArmedMode', (request: ExpressRequest, response: Response) => {
+			let body = '';
+			request.on('data', (chunk) => {
+				body += chunk;
+			});
+			request.on('end', () => {
+				(request as CustomRequest).log.info(body);
+				const parsedBody = JSON.parse(body);
+				alerter.setIsArmedMode(parsedBody.isArmed);
+				response.send(`armed mode set: ${JSON.stringify(parsedBody.isArmed)}`);
+			});
+
+			// TODO: notify users that we're in armed mode?
 		});
 
 		app.use(handleError);
@@ -82,7 +97,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 	}
 
 	function handleQuickScan(request: ExpressRequest, response: Response) {
-		const message = quickScan();
+		const message = alerter.quickScan();
 		response.write(message);
 		response.end();
 	}

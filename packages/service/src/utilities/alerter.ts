@@ -7,6 +7,7 @@ import { delayAsync } from './delay';
 import { sendEmailAsync } from './email';
 import { StateSmoothingFunctionMachine } from './stateSmoothingFunctionMachine';
 import { getUpHosts } from './scanner2';
+import { isInActiveModeSchedule } from './activeModeScheduler';
 
 const defaultAlertMessages: { [alertType in AlertType]: string } = {
 	intruder: 'The fortress is in peril.',
@@ -30,6 +31,7 @@ const DeviceStates: { [deviceState in DeviceState]: DeviceState } = {
 export function createAlerter(config: IConfig, log: Bunyan) {
 	let isPolling = false;
 	let shouldExtendPolling = false;
+	let isInArmedModeOverride: boolean | null = null;
 	// poll for 5 minutes
 	// TODO: make this duration configurable
 	// TODO: add continuous polling mode instead of triggered polling mode?
@@ -37,7 +39,17 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	const pollingIntervalInSeconds = 5;
 
 	async function runAlerter(): Promise<void> {
+		if (isInArmedModeOverride === true || isInActiveModeSchedule()) {
+			await runInArmedMode();
+		} else {
+			await runInReactiveMode();
+		}
+	}
+
+	async function runInReactiveMode(): Promise<void> {
+		log.debug('running in reactive mode');
 		if (isPolling) {
+			log.debug('extending polling');
 			shouldExtendPolling = true;
 			return;
 		}
@@ -47,6 +59,26 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		await pollForDevicePresenceTransitions();
 
 		isPolling = false;
+	}
+
+	// TODO: add timeout?
+	function setIsArmedMode(isArmedMode: boolean | null): void {
+		isInArmedModeOverride = isArmedMode;
+	}
+
+	async function runInArmedMode(): Promise<void> {
+		log.debug('running in armed mode');
+		// send alert to all users
+		await sendSimpleAlert(config.users, alertTypes.intruder);
+
+		// scan to see who's home and send that to everyone too
+		const upHosts = getUpHosts();
+		const homeMacs = upHosts.map((h) => h.mac);
+		const homeMessage = buildLineForMacs('home: ', new Set(homeMacs));
+		await sendAlertWithMessage(config.users, homeMessage);
+
+		// poll to see if somebody comes or goes
+		await runInReactiveMode();
 	}
 
 	function quickScan(): string {
@@ -74,6 +106,7 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 	}
 
 	async function pollForDevicePresenceTransitions(): Promise<void> {
+		log.debug('polling');
 		const arrivedMacs = new Set<string>();
 		const departedMacs = new Set<string>();
 		const transitionWindowSize = 3;
@@ -226,5 +259,5 @@ export function createAlerter(config: IConfig, log: Bunyan) {
 		}
 	}
 
-	return { runAlerter, quickScan };
+	return { runAlerter, quickScan, setIsArmedMode };
 }
