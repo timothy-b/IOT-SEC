@@ -44,7 +44,7 @@ export interface IConfig {
 	};
 	// TODO: make it a whole calendar, not just an event
 	// sync with GCal maybe?
-	alertVEvent: string | null;
+	armedModeVEvent: string | null;
 	okResponseBody: string;
 	basicAuthentication: {
 		enabled: boolean;

@@ -4,7 +4,7 @@ import tsParser from '@typescript-eslint/parser';
 import { importX } from 'eslint-plugin-import-x';
 import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
-import { process } from 'node:process';
+//import { process } from 'node';
 
 export default defineConfig([
 	{

@@ -2,12 +2,12 @@ import ICAL from 'ical.js';
 import Config from '../config';
 
 export function isInActiveModeSchedule(): boolean {
-	const alertVEvent = Config.alertVEvent;
-	if (!alertVEvent) {
+	const armedModeVEvent = Config.armedModeVEvent;
+	if (!armedModeVEvent) {
 		return false;
 	}
 
-	return isTimeInEventOccurrence(alertVEvent, ICAL.Time.now().toString());
+	return isTimeInEventOccurrence(armedModeVEvent, ICAL.Time.now().toString());
 }
 
 export function isTimeInEventOccurrence(icalVevent: string, timeString: string): boolean {

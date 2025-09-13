@@ -65,7 +65,7 @@ const Config: IConfig = {
 		username: 'photon',
 		password: 'pass',
 	},
-	alertVEvent: `
+	armedModeVEvent: `
 BEGIN:VEVENT
 DTSTART;TZID=America/Los_Angeles:20250727T230000
 DTEND;TZID=America/Los_Angeles:20250727T041500
