@@ -11,13 +11,16 @@ export function isInActiveModeSchedule(): boolean {
 }
 
 export function isTimeInEventOccurrence(icalVevent: string, timeString: string): boolean {
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 	const vevent = ICAL.parse(icalVevent);
+	// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
 	const event = new ICAL.Event(new ICAL.Component(vevent));
 	const dtstart = event.startDate;
 	const target = ICAL.Time.fromString(timeString, null);
 	const duration = event.duration;
 
-	let iterator = event.iterator(dtstart);
+	const iterator = event.iterator(dtstart);
+	// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 	for (let next = iterator.next(); next && next.compare(target) < 0; next = iterator.next()) {
 		const endOfOccurrence = ICAL.Time.fromJSDate(next.toJSDate());
 		endOfOccurrence.addDuration(duration);

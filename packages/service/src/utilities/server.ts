@@ -66,13 +66,13 @@ export function createServer(config: IConfig, log: Bunyan) {
 		});
 
 		app.post('/iotsec/setArmedMode', (request: ExpressRequest, response: Response) => {
-			let body = '';
-			request.on('data', (chunk) => {
+			let body: string = '';
+			request.on('data', (chunk: string) => {
 				body += chunk;
 			});
 			request.on('end', () => {
 				(request as CustomRequest).log.info(body);
-				const parsedBody = JSON.parse(body);
+				const parsedBody = JSON.parse(body) as { isArmed: boolean };
 				alerter.setIsArmedMode(parsedBody.isArmed);
 				response.send(`armed mode set: ${JSON.stringify(parsedBody.isArmed)}`);
 			});
@@ -221,6 +221,7 @@ export function createServer(config: IConfig, log: Bunyan) {
 			return false;
 		}
 
+		// eslint-disable-next-line no-prototype-builtins
 		if (!leakyBucketByIp.hasOwnProperty(ipAddress)) {
 			const newBucket = new SimpleLeakyBucket(leakyBucketOptions);
 

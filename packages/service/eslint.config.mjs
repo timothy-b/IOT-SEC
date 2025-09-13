@@ -3,8 +3,8 @@ import typescriptEslint from '@typescript-eslint/eslint-plugin';
 import tsParser from '@typescript-eslint/parser';
 import { importX } from 'eslint-plugin-import-x';
 import { defineConfig } from 'eslint/config';
+import process from 'node:process';
 import tseslint from 'typescript-eslint';
-//import { process } from 'node';
 
 export default defineConfig([
 	{
@@ -12,6 +12,7 @@ export default defineConfig([
 			js.configs.recommended,
 			importX.flatConfigs.recommended,
 			importX.flatConfigs.typescript,
+			// eslint-disable-next-line import-x/no-named-as-default-member
 			tseslint.configs.strictTypeChecked,
 		],
 		plugins: {

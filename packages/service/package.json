@@ -13,7 +13,7 @@
 		"depcheck": "npx depcheck",
 		"start": "node --import=extensionless/register ./dist/program.js",
 		"stop": "ps aux | grep node | grep iot-sec | awk '{ print $2 }' | xargs sudo kill",
-		"lint": "eslint ./src/**/*.ts --ignore-pattern **/dist --ignore-pattern **/node_modules",
+		"lint": "eslint ./src/**/*.ts --ignore-pattern **/dist --ignore-pattern **/node_modules --config eslint.config.mjs",
 		"lint:windows": ".\\node_modules\\.bin\\eslint ./src/**/*.{js,ts} --ignore-pattern **/dist --ignore-pattern **/node_modules",
 		"test": "node ./node_modules/jest/bin/jest.js"
 	},
@@ -38,7 +38,7 @@
 		"@types/express": "^4.17.21",
 		"@types/jest": "^29.5.14",
 		"@types/lodash": "^4.17.19",
-		"@types/node": "^20.17.5",
+		"@types/node": "^20.19.14",
 		"@types/ping": "^0.4.4",
 		"@typescript-eslint/eslint-plugin": "^8.35.0",
 		"@typescript-eslint/parser": "^8.35.0",
